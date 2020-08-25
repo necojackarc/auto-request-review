@@ -1,0 +1,14 @@
+name: Request Review Based on Files
+
+on:
+  - pull_request
+
+jobs:
+  request-review-based-on-files:
+    name: Request review based on files changed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign reviewers to a pull request based on files changed
+        uses: necojackarc/request-review-based-on-files@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

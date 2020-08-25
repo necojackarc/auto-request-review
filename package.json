@@ -1,0 +1,22 @@
+{
+  "name": "request-review-based-on-files",
+  "version": "0.0.1",
+  "description": "GitHub action that automatically requests review of a pull request based on files changed",
+  "main": "index.js",
+  "scripts": {
+    "build": "ncc build src/index.js",
+    "lint": "eslint src",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Taka <necojackarc@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.2.4",
+    "@actions/github": "^4.0.0"
+  },
+  "devDependencies": {
+    "@zeit/ncc": "^0.22.3",
+    "eslint": "^7.7.0"
+  }
+}
