@@ -4,21 +4,25 @@ const core = require('@actions/core');
 const github = require('@actions/github');
 const yaml = require('yaml');
 
+const identify_reviewers = require('./identify_reviewers');
+
 const context = github.context;
 const token = core.getInput('token');
 const config_path = core.getInput('config');
 const octokit = github.getOctokit(token);
 
 async function run() {
-  console.log('The action is successfully invoked!');
-
+  core.info('Fetch pull request and configuration');
   const pull_request = await fetch_pull_request();
   const config = await fetch_config(pull_request);
   const changed_files = await fetch_changed_files();
 
-  // TODO: Parse config, identify reviewers, then assign reviewres
-  console.log(config);
-  console.log(changed_files);
+  core.info('Identify reviewers based on the changed files and the configuration');
+  const author = pull_request.user.login;
+  const reviewers = identify_reviewers({ config, changed_files, excludes: [ author ] });
+
+  core.info(`Request review to ${reviewers.join(', ')}`);
+  await assign_reviewers(reviewers);
 }
 
 async function fetch_pull_request() {
@@ -69,4 +73,13 @@ async function fetch_changed_files() {
   return changed_files;
 }
 
-run();
+async function assign_reviewers(reviewers) {
+  return octokit.pulls.requestReviewers({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: context.payload.pull_request.number,
+    reviewers,
+  });
+}
+
+run().catch((error) => core.setFailed(error));

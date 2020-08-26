@@ -3,7 +3,9 @@ module.exports = {
     ecmaVersion:  2018,
   },
   env: {
-    node:  true,
+    es6: true,
+    node: true,
+    mocha: true,
   },
   root: true,
   extends: 'eslint:recommended',

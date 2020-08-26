@@ -1,8 +1,12 @@
-groups:
-  backend-engineers:
-    - necojackarc
-
 reviewers:
-  '*.js':
-    - necojackarc
-    - backend-engineers
+  groups:
+    repository-owner:
+      - necojackarc
+
+files:
+  '**/*':
+    - repository-owner
+  '.github/**/*':
+    - octocat
+  '*.yml':
+    - yamler
