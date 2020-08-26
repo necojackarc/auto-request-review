@@ -5,7 +5,7 @@ inputs:
     required: true
   config:
     required: false
-    default: '.github/request-review-based-on-files.yml'
+    default: '.github/request_review_based_on_files.yml'
 runs:
   using: 'node12'
   main: 'dist/index.js'

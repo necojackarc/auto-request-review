@@ -1,0 +1,8 @@
+groups:
+  backend-engineers:
+    - necojackarc
+
+reviewers:
+  '*.js':
+    - necojackarc
+    - backend-engineers
