@@ -2,20 +2,22 @@
 
 ![Test](https://github.com/necojackarc/request-review-based-on-files/workflows/Test/badge.svg)
 
-GitHub Action that automatically requests review of a pull request based on files changed
+A GitHub Action that automatically requests review of a pull request based on files changed
 
 ## Motivation
 You can automate reviewer assignment process using [code owners](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners) if you'd like to define reviewers based on changed files.
-However, you may want to distinguish just reviewers from code owners in order to properly use code-owner-related GitHub features. Even if you don't use such features, distinguishing them can be helpful especially for someone new to your repository as they may have no idea yet about who is the code owners of that repo or some areas.
+However, you may want to distinguish just reviewers from code owners in order to properly use code-owner-related features on GitHub. Even if you don't use such features, distinguishing them can be helpful especially for someone new to your repository as they may have no idea yet about who is responsible for what.
 
 ## Configuration
 
-Create a configuration file where you can define code using [glob](https://en.wikipedia.org/wiki/Glob_(programming)).
+Create a configuration file where you can define code reviwers using [glob](https://en.wikipedia.org/wiki/Glob_(programming)).
 Internally, [minimatch](https://github.com/isaacs/minimatch) is used as a glob implementation.
+
+The format of a configuration file is as follows:
 
 ```yaml
 reviewers:
-  # You can define groups
+  # You can define groups.
   groups:
     repository-owner:
       - me
@@ -27,19 +29,22 @@ reviewers:
       - js-woman
 
 files:
+  # Keys are glob expressions.
+  # You can assign groups/indivisuals as reviewers.
   '**':
-    - repository-owner
+    - repository-owner # group
   '**/*.js':
-    - core-contributors
-    - js-lovers
-  # You can use a mix of groups and indivisuals
+    - core-contributors # group
+    - js-lovers # group
   '**/*.yml':
-    - core-contributors
-    - yamler
+    - core-contributors # group
+    - yamler # indivisual
   '.github/**':
-    - octopus
-    - cat
+    - octopus # indivisual
+    - cat # indivisual
 
+# Some options that can prevent the action from requesting review.
+# These are the default options.
 options:
   ignore_draft: true
   ignored_keywords:
@@ -66,5 +71,5 @@ jobs:
         uses: necojackarc/request-review-based-on-files@v0.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          config: .github/reviewers.yml
+          config: .github/reviewers.yml # You can override the config file location like this.
 ```
