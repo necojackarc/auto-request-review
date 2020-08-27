@@ -12,9 +12,13 @@ const config_path = core.getInput('config');
 const octokit = github.getOctokit(token);
 
 async function run() {
-  core.info('Fetch pull request and configuration');
+  core.info('Fetch pull request');
   const pull_request = await fetch_pull_request();
+
+  core.info('Fetch configuration file');
   const config = await fetch_config(pull_request);
+
+  core.info('Fetch changed files');
   const changed_files = await fetch_changed_files();
 
   core.info('Identify reviewers based on the changed files and the configuration');
@@ -36,6 +40,9 @@ async function fetch_pull_request() {
 }
 
 async function fetch_config(pull_request) {
+  console.log(github.context);
+  console.log(pull_request);
+
   const { data: response_body } = await octokit.repos.getContent({
     owner: context.repo.owner,
     repo: context.repo.repo,
