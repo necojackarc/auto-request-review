@@ -43,7 +43,7 @@ async function run() {
   const reviewers = identify_reviewers({ config, changed_files, excludes: [ author ] });
 
   if (reviewers.length === 0) {
-    core.info('Matched no reviweres; sterminating the process');
+    core.info('Matched no reviweres; terminating the process');
     return;
   }
 
