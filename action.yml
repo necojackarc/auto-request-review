@@ -1,5 +1,8 @@
 name: 'Request Review Based on Files'
 description: 'Request review based on files changed'
+branding:
+  icon: 'at-sign'
+  color: 'red'
 inputs:
   token:
     required: true
