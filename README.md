@@ -25,7 +25,7 @@ reviewers:
       - js-woman
 
 files:
-  '**/*':
+  '**':
     - repository-owner
   '**/*.js':
     - core-contributors
@@ -34,7 +34,7 @@ files:
   '**/*.yml':
     - core-contributors
     - yamler
-  '.github/**/*':
+  '.github/**':
     - octopus
     - cat
 ```
