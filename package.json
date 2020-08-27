@@ -1,6 +1,6 @@
 {
   "name": "request-review-based-on-files",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "GitHub Action that automatically requests review of a pull request based on files changed",
   "main": "index.js",
   "scripts": {
