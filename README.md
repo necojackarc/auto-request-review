@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Assign reviewers to a pull request based on files changed
-        uses: necojackarc/request-review-based-on-files@v0.0.1
+        uses: necojackarc/request-review-based-on-files@v0.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: .github/reviewers.yml

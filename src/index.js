@@ -13,30 +13,41 @@ const config_path = core.getInput('config');
 const octokit = github.getOctokit(token);
 
 async function run() {
-  core.info('Fetch configuration file from the base branch');
-  const config = await fetch_config();
+  core.info('Fetching configuration file from the base branch');
+
+  let config;
+
+  try {
+    config = await fetch_config();
+  } catch (error) {
+    if (error.status === 404) {
+      core.warning('No configuration file is found in the base branch; terminating the process');
+      return;
+    }
+    throw error;
+  }
 
   const title = context.payload.pull_request.title;
   const is_draft = context.payload.pull_request.draft;
 
   if (!should_request_review({ title, is_draft, config })) {
-    core.info('Matched the ignoring rules; skip requesting review');
+    core.info('Matched the ignoring rules; terminating the process');
     return;
   }
 
-  core.info('Fetch changed files in the pull request');
+  core.info('Fetching changed files in the pull request');
   const changed_files = await fetch_changed_files();
 
-  core.info('Identify reviewers based on the changed files and the configuration');
+  core.info('Identifying reviewers based on the changed files and the configuration');
   const author = context.payload.pull_request.user.login;
   const reviewers = identify_reviewers({ config, changed_files, excludes: [ author ] });
 
   if (reviewers.length === 0) {
-    core.info('Matched no reviweres; skip requesting review');
+    core.info('Matched no reviweres; sterminating the process');
     return;
   }
 
-  core.info(`Request review to ${reviewers.join(', ')}`);
+  core.info(`Requesting review to ${reviewers.join(', ')}`);
   await assign_reviewers(reviewers);
 }
 
