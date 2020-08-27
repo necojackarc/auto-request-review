@@ -11885,35 +11885,31 @@ const config_path = core.getInput('config');
 const octokit = github.getOctokit(token);
 
 async function run() {
-  core.info('Fetch pull request and configuration');
-  const pull_request = await fetch_pull_request();
-  const config = await fetch_config(pull_request);
+  core.info('Fetch configuration file from the base branch');
+  const config = await fetch_config();
+
+  core.info('Fetch changed files in the pull request');
   const changed_files = await fetch_changed_files();
 
   core.info('Identify reviewers based on the changed files and the configuration');
-  const author = pull_request.user.login;
+  const author = context.payload.pull_request.user.login;
   const reviewers = identify_reviewers({ config, changed_files, excludes: [ author ] });
+
+  if (reviewers.length === 0) {
+    core.info('No review request is needed');
+    return;
+  }
 
   core.info(`Request review to ${reviewers.join(', ')}`);
   await assign_reviewers(reviewers);
 }
 
-async function fetch_pull_request() {
-  const { data: pull_request } = await octokit.pulls.get({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    pull_number: context.payload.pull_request.number,
-  });
-
-  return pull_request;
-}
-
-async function fetch_config(pull_request) {
+async function fetch_config() {
   const { data: response_body } = await octokit.repos.getContent({
     owner: context.repo.owner,
     repo: context.repo.repo,
     path: config_path,
-    ref: pull_request.head.ref, // branch name the pull request is on
+    ref: context.payload.pull_request.base.ref, // base branch name the branch is going into
   });
 
   const content = Buffer.from(response_body.content, response_body.encoding).toString();
