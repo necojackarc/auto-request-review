@@ -6535,9 +6535,15 @@ exports.toJSON = toJSON;
 "use strict";
 
 
+const core = __webpack_require__(470);
 const minimatch = __webpack_require__(93);
 
 function identify_reviewers({ config, changed_files, excludes = [] }) {
+  if (!config.files) {
+    core.info('A "files" key does not exist in config; returning no reviwers for changed files.');
+    return [];
+  }
+
   const matching_reviwers = [];
 
   Object.entries(config.files).forEach(([ glob_pattern, reviewers ]) => {

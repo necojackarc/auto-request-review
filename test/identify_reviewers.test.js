@@ -20,6 +20,11 @@ describe('identify_reviewers', function() {
       },
     };
 
+    it('returns nothing when config does not have a "files" key', function() {
+      const changed_files = [ 'THIS DOES NOT MATTER' ];
+      expect(identify_reviewers({ config: {}, changed_files })).to.deep.equal([]);
+    });
+
     it('returns matching reviewers specified as indivisuals', function() {
       const changed_files = [ 'dir/super-star' ];
       expect(identify_reviewers({ config, changed_files })).to.have.members([ 'mario', 'luigi' ]);
