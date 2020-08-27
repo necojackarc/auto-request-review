@@ -1,5 +1,7 @@
 # Request Review Based on Files
 
+![Test](https://github.com/necojackarc/request-review-based-on-files/workflows/Test/badge.svg)
+
 GitHub Action that automatically requests review of a pull request based on files changed
 
 ## Motivation
