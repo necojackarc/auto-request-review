@@ -103,18 +103,18 @@ describe('should_request_review', function() {
       });
     });
 
-    context('when no options are given', function() {
-      const config = {};
+    it('ignores a draft by default when "ignore_draft" is not supplied', function() {
+      const config = { ignored_keywords: [] };
 
-      it('ignores a draft by default', function() {
-        expect(should_request_review({ title: 'THIS DOES NOT MATTER', is_draft: true, config })).to.be.false;
-        expect(should_request_review({ title: 'THIS DOES NOT MATTER', is_draft: false, config })).to.be.true;
-      });
+      expect(should_request_review({ title: 'THIS DOES NOT MATTER', is_draft: true, config })).to.be.false;
+      expect(should_request_review({ title: 'THIS DOES NOT MATTER', is_draft: false, config })).to.be.true;
+    });
 
-      it('ignores a pull request whose title contains "DO NOT REVIEW" by default', function() {
-        expect(should_request_review({ title: '[DO NOT REVIEW] THIS MATTERS', is_draft: false, config })).to.be.false;
-        expect(should_request_review({ title: 'THIS MATTERS', is_draft: false, config })).to.be.true;
-      });
+    it('ignores a pull request whose title contains "DO NOT REVIEW" by default when "ignored_keywords" is not supplied', function() {
+      const config = { ignore_draft: false };
+
+      expect(should_request_review({ title: '[DO NOT REVIEW] THIS MATTERS', is_draft: false, config })).to.be.false;
+      expect(should_request_review({ title: 'THIS MATTERS', is_draft: false, config })).to.be.true;
     });
   });
 });
