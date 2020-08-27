@@ -1,7 +1,7 @@
 {
   "name": "request-review-based-on-files",
   "version": "0.0.1",
-  "description": "GitHub action that automatically requests review of a pull request based on files changed",
+  "description": "GitHub Action that automatically requests review of a pull request based on files changed",
   "main": "index.js",
   "scripts": {
     "build": "ncc build src/index.js",

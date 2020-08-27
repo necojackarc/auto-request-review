@@ -6,7 +6,3 @@ reviewers:
 files:
   '**/*':
     - repository-owner
-  '.github/**/*':
-    - octocat
-  '*.yml':
-    - yamler
