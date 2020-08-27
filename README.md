@@ -37,6 +37,11 @@ files:
   '.github/**':
     - octopus
     - cat
+
+options:
+  ignore_draft: true
+  ignored_keywords:
+    - DO NOT REVIEW
 ```
 
 The default location of the configuration file is `.github/request_review_based_on_files.yml` but you can override it.

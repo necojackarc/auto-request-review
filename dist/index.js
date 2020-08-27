@@ -3932,6 +3932,35 @@ exports.scalarOptions = scalarOptions;
 
 /***/ }),
 
+/***/ 210:
+/***/ (function(module) {
+
+"use strict";
+
+
+const DEFAULT_OPTIONS = {
+  ignore_draft: true,
+  ignored_keywords: [ 'DO NOT REVIEW' ],
+};
+
+function should_request_review({ title, is_draft, config }) {
+  const {
+    ignore_draft: should_ignore_draft,
+    ignored_keywords = [], // fall back to an empty array if it's not supplied
+  } = config.options || DEFAULT_OPTIONS;
+
+  if (should_ignore_draft && is_draft) {
+    return false;
+  }
+
+  return !ignored_keywords.some((keyword) => title.includes(keyword));
+}
+
+module.exports = should_request_review;
+
+
+/***/ }),
+
 /***/ 211:
 /***/ (function(module) {
 
@@ -11878,6 +11907,7 @@ const github = __webpack_require__(469);
 const yaml = __webpack_require__(596);
 
 const identify_reviewers = __webpack_require__(334);
+const should_request_review = __webpack_require__(210);
 
 const context = github.context;
 const token = core.getInput('token');
@@ -11888,6 +11918,14 @@ async function run() {
   core.info('Fetch configuration file from the base branch');
   const config = await fetch_config();
 
+  const title = context.payload.pull_request.title;
+  const is_draft = context.payload.pull_request.draft;
+
+  if (!should_request_review({ title, is_draft, config })) {
+    core.info('Matched the ignoring rules; skip requesting review');
+    return;
+  }
+
   core.info('Fetch changed files in the pull request');
   const changed_files = await fetch_changed_files();
 
@@ -11896,7 +11934,7 @@ async function run() {
   const reviewers = identify_reviewers({ config, changed_files, excludes: [ author ] });
 
   if (reviewers.length === 0) {
-    core.info('No review request is needed');
+    core.info('Matched no reviweres; skip requesting review');
     return;
   }
 

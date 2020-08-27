@@ -5,6 +5,7 @@ const github = require('@actions/github');
 const yaml = require('yaml');
 
 const identify_reviewers = require('./identify_reviewers');
+const should_request_review = require('./should_request_review');
 
 const context = github.context;
 const token = core.getInput('token');
@@ -15,6 +16,14 @@ async function run() {
   core.info('Fetch configuration file from the base branch');
   const config = await fetch_config();
 
+  const title = context.payload.pull_request.title;
+  const is_draft = context.payload.pull_request.draft;
+
+  if (!should_request_review({ title, is_draft, config })) {
+    core.info('Matched the ignoring rules; skip requesting review');
+    return;
+  }
+
   core.info('Fetch changed files in the pull request');
   const changed_files = await fetch_changed_files();
 
@@ -23,7 +32,7 @@ async function run() {
   const reviewers = identify_reviewers({ config, changed_files, excludes: [ author ] });
 
   if (reviewers.length === 0) {
-    core.info('No review request is needed');
+    core.info('Matched no reviweres; skip requesting review');
     return;
   }
 

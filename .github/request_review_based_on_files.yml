@@ -6,3 +6,8 @@ reviewers:
 files:
   '**/*':
     - repository-owner
+
+options:
+  ignore_draft: true
+  ignored_keywords:
+    - DO NOT REVIEW
