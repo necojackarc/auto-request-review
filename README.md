@@ -48,7 +48,7 @@ name: Request Review Based on Files
 
 on:
   pull_request:
-    types: [ready_for_review]
+    types: [opened, ready_for_review, reopened]
 
 jobs:
   request-review-based-on-files:
