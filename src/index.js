@@ -62,7 +62,7 @@ async function fetch_changed_files() {
   do {
     page += 1;
 
-    const { data: response_body } =  await octokit.pulls.listFiles({
+    const { data: response_body } = await octokit.pulls.listFiles({
       owner: context.repo.owner,
       repo: context.repo.repo,
       pull_number: context.payload.pull_request.number,
