@@ -37,6 +37,11 @@ files:
   '.github/**':
     - octopus
     - cat
+
+options:
+  ignore_draft: true
+  ignored_keywords:
+    - DO NOT REVIEW
 ```
 
 The default location of the configuration file is `.github/request_review_based_on_files.yml` but you can override it.
@@ -48,7 +53,7 @@ name: Request Review Based on Files
 
 on:
   pull_request:
-    types: [ready_for_review]
+    types: [opened, ready_for_review, reopened]
 
 jobs:
   request-review-based-on-files:
