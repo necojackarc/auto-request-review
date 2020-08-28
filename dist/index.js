@@ -10299,6 +10299,48 @@ module.exports.Collection = Hook.Collection
 
 /***/ }),
 
+/***/ 524:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const core = __webpack_require__(470);
+
+const DEFAULT_OPTIONS = {
+  enable_group_assignment: false,
+};
+
+function fetch_other_group_members({ author, config }) {
+  const { enable_group_assignment: should_group_assign } = {
+    ...DEFAULT_OPTIONS,
+    ...config.options,
+  };
+
+  if (!should_group_assign) {
+    core.info('Group assignment feature is disabled');
+    return [];
+  }
+
+  core.info('Group assignment feature is enabled');
+
+  const groups = (config.reviewers && config.reviewers.groups) || {};
+  const belonging_group_names = Object.entries(groups).map(([ group_name, members ]) =>
+    members.includes(author) ? group_name : undefined
+  ).filter((group_name) => group_name);
+
+  const other_group_members = belonging_group_names.flatMap((group_name) =>
+    groups[group_name]
+  ).filter((group_member) => group_member !== author);
+
+  return [ ...new Set(other_group_members) ];
+}
+
+module.exports = fetch_other_group_members;
+
+
+/***/ }),
+
 /***/ 525:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -11912,6 +11954,7 @@ const core = __webpack_require__(470);
 const github = __webpack_require__(469);
 const yaml = __webpack_require__(596);
 
+const fetch_other_group_members = __webpack_require__(524);
 const identify_reviewers = __webpack_require__(334);
 const should_request_review = __webpack_require__(210);
 
@@ -11948,7 +11991,12 @@ async function run() {
 
   core.info('Identifying reviewers based on the changed files and the configuration');
   const author = context.payload.pull_request.user.login;
-  const reviewers = identify_reviewers({ config, changed_files, excludes: [ author ] });
+  const reviewers_based_on_files = identify_reviewers({ config, changed_files, excludes: [ author ] });
+
+  core.info('Adding other group membres to reviwers if group assignment feature is on');
+  const reviwers_from_same_teams = fetch_other_group_members({ config, author });
+
+  const reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviwers_from_same_teams ]) ];
 
   if (reviewers.length === 0) {
     core.info('Matched no reviweres; terminating the process');

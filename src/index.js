@@ -4,6 +4,7 @@ const core = require('@actions/core');
 const github = require('@actions/github');
 const yaml = require('yaml');
 
+const fetch_other_group_members = require('./fetch_other_group_members');
 const identify_reviewers = require('./identify_reviewers');
 const should_request_review = require('./should_request_review');
 
@@ -40,7 +41,12 @@ async function run() {
 
   core.info('Identifying reviewers based on the changed files and the configuration');
   const author = context.payload.pull_request.user.login;
-  const reviewers = identify_reviewers({ config, changed_files, excludes: [ author ] });
+  const reviewers_based_on_files = identify_reviewers({ config, changed_files, excludes: [ author ] });
+
+  core.info('Adding other group membres to reviwers if group assignment feature is on');
+  const reviwers_from_same_teams = fetch_other_group_members({ config, author });
+
+  const reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviwers_from_same_teams ]) ];
 
   if (reviewers.length === 0) {
     core.info('Matched no reviweres; terminating the process');
