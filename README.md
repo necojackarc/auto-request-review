@@ -49,6 +49,7 @@ options:
   ignore_draft: true
   ignored_keywords:
     - DO NOT REVIEW
+  enable_group_assignment: false
 ```
 
 The default location of the configuration file is `.github/request_review_based_on_files.yml` but you can override it.
@@ -68,8 +69,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Assign reviewers to a pull request based on files changed
-        uses: necojackarc/request-review-based-on-files@v0.0.2
+        uses: necojackarc/request-review-based-on-files@v0.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: .github/reviewers.yml # You can override the config file location like this.
 ```
+
+### Group Assignment
+Besides the main feature to assign reviwers based on changed files, this action also supports group assignment.
+If you set `options.enable_group_assignment` `true`, the other members of the team(s) that the author belongs to will be requested for code review.

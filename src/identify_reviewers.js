@@ -1,8 +1,14 @@
 'use strict';
 
+const core = require('@actions/core');
 const minimatch = require('minimatch');
 
 function identify_reviewers({ config, changed_files, excludes = [] }) {
+  if (!config.files) {
+    core.info('A "files" key does not exist in config; returning no reviwers for changed files.');
+    return [];
+  }
+
   const matching_reviwers = [];
 
   Object.entries(config.files).forEach(([ glob_pattern, reviewers ]) => {
@@ -12,7 +18,7 @@ function identify_reviewers({ config, changed_files, excludes = [] }) {
   });
 
   // Replace groups with indivisuals
-  const groups = (config.reviewers && config.reviewers.groups) || [];
+  const groups = (config.reviewers && config.reviewers.groups) || {};
   const indivisuals = matching_reviwers.flatMap((reviewer) =>
     Array.isArray(groups[reviewer]) ? groups[reviewer] : reviewer
   );
