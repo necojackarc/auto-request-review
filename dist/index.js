@@ -6553,7 +6553,7 @@ function identify_reviewers({ config, changed_files, excludes = [] }) {
   });
 
   // Replace groups with indivisuals
-  const groups = (config.reviewers && config.reviewers.groups) || [];
+  const groups = (config.reviewers && config.reviewers.groups) || {};
   const indivisuals = matching_reviwers.flatMap((reviewer) =>
     Array.isArray(groups[reviewer]) ? groups[reviewer] : reviewer
   );
