@@ -6,7 +6,7 @@
   "scripts": {
     "build": "ncc build src/index.js",
     "lint": "eslint src",
-    "test": "mocha test"
+    "test": "nyc --all mocha test"
   },
   "keywords": [],
   "author": "Taka <necojackarc@gmail.com>",
@@ -21,6 +21,12 @@
     "@zeit/ncc": "^0.22.3",
     "chai": "^4.2.0",
     "eslint": "^7.7.0",
-    "mocha": "^8.1.2"
+    "mocha": "^8.1.2",
+    "nyc": "^15.1.0"
+  },
+  "nyc": {
+    "include": [
+      "src"
+    ]
   }
 }
