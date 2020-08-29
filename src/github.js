@@ -7,7 +7,7 @@ const yaml = require('yaml');
 class PullRequest {
   // ref: https://developer.github.com/v3/pulls/#get-a-pull-request
   constructor(pull_request_paylaod) {
-    // ncc doesn't yet support private class fields as of 29 Aug. 2020
+    // "ncc" doesn't yet support private class fields as of 29 Aug. 2020
     // ref: https://github.com/vercel/ncc/issues/499
     this._pull_request_paylaod = pull_request_paylaod;
   }
