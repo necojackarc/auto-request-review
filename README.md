@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Assign reviewers to a pull request based on files changed
-        uses: necojackarc/request-review-based-on-files@v0.1.0
+        uses: necojackarc/request-review-based-on-files@v0.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: .github/reviewers.yml # Config file location override
