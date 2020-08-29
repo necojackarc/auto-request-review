@@ -1,6 +1,6 @@
 # Auto Request Review
 
-![Test](https://github.com/necojackarc/auto-request-review/workflows/Test/badge.svg)
+![CI](https://github.com/necojackarc/auto-request-review/workflows/CI/badge.svg)
 
 A GitHub Action automatically requests review of a pull request based on files changes and/or groups the author belongs to 🤖
 
@@ -103,25 +103,25 @@ options:
   enable_group_assignment: false
 ```
 
-The default configuration file location is `.github/request_review_based_on_files.yml` but you can override it in your workflow configuration file.
+The default configuration file location is `.github/auto_request_review.yml` but you can override it in your workflow configuration file.
 
 ### Workflow configuration
-Create a workflow file in `.github/workflows` (e.g. `.github/workflows/request_review_based_on_files.yml`):
+Create a workflow file in `.github/workflows` (e.g. `.github/workflows/auto_request_review.yml`):
 
 ```yaml
-name: Request Review Based on Files
+name: Auto Request Review
 
 on:
   pull_request:
     types: [opened, ready_for_review, reopened]
 
 jobs:
-  request-review-based-on-files:
-    name: Request review based on files changed
+  auto-request-review:
+    name: Auto Request Review
     runs-on: ubuntu-latest
     steps:
-      - name: Assign reviewers to a pull request based on files changed
-        uses: necojackarc/request-review-based-on-files@v0.1.1
+      - name: Request review based on files changes and/or groups the author belongs to
+        uses: necojackarc/auto-request-review@v0.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: .github/reviewers.yml # Config file location override

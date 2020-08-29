@@ -8,7 +8,7 @@ inputs:
     required: true
   config:
     required: false
-    default: '.github/request_review_based_on_files.yml'
+    default: '.github/auto_request_review.yml'
 runs:
   using: 'node12'
   main: 'dist/index.js'
