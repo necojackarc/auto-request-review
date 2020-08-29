@@ -3932,35 +3932,6 @@ exports.scalarOptions = scalarOptions;
 
 /***/ }),
 
-/***/ 210:
-/***/ (function(module) {
-
-"use strict";
-
-
-const DEFAULT_OPTIONS = {
-  ignore_draft: true,
-  ignored_keywords: [ 'DO NOT REVIEW' ],
-};
-
-function should_request_review({ title, is_draft, config }) {
-  const { ignore_draft: should_ignore_draft, ignored_keywords } = {
-    ...DEFAULT_OPTIONS,
-    ...config.options,
-  };
-
-  if (should_ignore_draft && is_draft) {
-    return false;
-  }
-
-  return !ignored_keywords.some((keyword) => title.includes(keyword));
-}
-
-module.exports = should_request_review;
-
-
-/***/ }),
-
 /***/ 211:
 /***/ (function(module) {
 
@@ -6525,44 +6496,6 @@ exports.strOptions = strOptions;
 exports.stringifyNumber = stringifyNumber;
 exports.stringifyString = stringifyString;
 exports.toJSON = toJSON;
-
-
-/***/ }),
-
-/***/ 334:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const core = __webpack_require__(470);
-const minimatch = __webpack_require__(93);
-
-function identify_reviewers({ config, changed_files, excludes = [] }) {
-  if (!config.files) {
-    core.info('A "files" key does not exist in config; returning no reviwers for changed files.');
-    return [];
-  }
-
-  const matching_reviwers = [];
-
-  Object.entries(config.files).forEach(([ glob_pattern, reviewers ]) => {
-    if (changed_files.some((changed_file) => minimatch(changed_file, glob_pattern))) {
-      matching_reviwers.push(...reviewers);
-    }
-  });
-
-  // Replace groups with indivisuals
-  const groups = (config.reviewers && config.reviewers.groups) || {};
-  const indivisuals = matching_reviwers.flatMap((reviewer) =>
-    Array.isArray(groups[reviewer]) ? groups[reviewer] : reviewer
-  );
-
-  // Depue and filter the results
-  return [ ...new Set(indivisuals) ].filter((reviewer) => !excludes.includes(reviewer));
-}
-
-module.exports = identify_reviewers;
 
 
 /***/ }),
@@ -10299,48 +10232,6 @@ module.exports.Collection = Hook.Collection
 
 /***/ }),
 
-/***/ 524:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const core = __webpack_require__(470);
-
-const DEFAULT_OPTIONS = {
-  enable_group_assignment: false,
-};
-
-function fetch_other_group_members({ author, config }) {
-  const { enable_group_assignment: should_group_assign } = {
-    ...DEFAULT_OPTIONS,
-    ...config.options,
-  };
-
-  if (!should_group_assign) {
-    core.info('Group assignment feature is disabled');
-    return [];
-  }
-
-  core.info('Group assignment feature is enabled');
-
-  const groups = (config.reviewers && config.reviewers.groups) || {};
-  const belonging_group_names = Object.entries(groups).map(([ group_name, members ]) =>
-    members.includes(author) ? group_name : undefined
-  ).filter((group_name) => group_name);
-
-  const other_group_members = belonging_group_names.flatMap((group_name) =>
-    groups[group_name]
-  ).filter((group_member) => group_member !== author);
-
-  return [ ...new Set(other_group_members) ];
-}
-
-module.exports = fetch_other_group_members;
-
-
-/***/ }),
-
 /***/ 525:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -11951,17 +11842,19 @@ module.exports = require("util");
 
 
 const core = __webpack_require__(470);
-const github = __webpack_require__(469);
-const yaml = __webpack_require__(596);
 
-const fetch_other_group_members = __webpack_require__(524);
-const identify_reviewers = __webpack_require__(334);
-const should_request_review = __webpack_require__(210);
+const {
+  get_pull_request,
+  fetch_config,
+  fetch_changed_files,
+  assign_reviewers,
+} = __webpack_require__(790);
 
-const context = github.context;
-const token = core.getInput('token');
-const config_path = core.getInput('config');
-const octokit = github.getOctokit(token);
+const {
+  fetch_other_group_members,
+  identify_reviewers,
+  should_request_review,
+} = __webpack_require__(909);
 
 async function run() {
   core.info('Fetching configuration file from the base branch');
@@ -11978,8 +11871,7 @@ async function run() {
     throw error;
   }
 
-  const title = context.payload.pull_request.title;
-  const is_draft = context.payload.pull_request.draft;
+  const { title, is_draft, author } = get_pull_request();
 
   if (!should_request_review({ title, is_draft, config })) {
     core.info('Matched the ignoring rules; terminating the process');
@@ -11990,7 +11882,6 @@ async function run() {
   const changed_files = await fetch_changed_files();
 
   core.info('Identifying reviewers based on the changed files and the configuration');
-  const author = context.payload.pull_request.user.login;
   const reviewers_based_on_files = identify_reviewers({ config, changed_files, excludes: [ author ] });
 
   core.info('Adding other group membres to reviwers if group assignment feature is on');
@@ -12005,53 +11896,6 @@ async function run() {
 
   core.info(`Requesting review to ${reviewers.join(', ')}`);
   await assign_reviewers(reviewers);
-}
-
-async function fetch_config() {
-  const { data: response_body } = await octokit.repos.getContent({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    path: config_path,
-    ref: context.payload.pull_request.base.ref, // base branch name the branch is going into
-  });
-
-  const content = Buffer.from(response_body.content, response_body.encoding).toString();
-  return yaml.parse(content);
-}
-
-async function fetch_changed_files() {
-  const changed_files = [];
-
-  const per_page = 100;
-  let page = 0;
-  let number_of_files_in_current_page;
-
-  do {
-    page += 1;
-
-    const { data: response_body } = await octokit.pulls.listFiles({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      pull_number: context.payload.pull_request.number,
-      page,
-      per_page,
-    });
-
-    number_of_files_in_current_page = response_body.length;
-    changed_files.push(...response_body.map((file) => file.filename));
-
-  } while (number_of_files_in_current_page === per_page);
-
-  return changed_files;
-}
-
-async function assign_reviewers(reviewers) {
-  return octokit.pulls.requestReviewers({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    pull_number: context.payload.pull_request.number,
-    reviewers,
-  });
 }
 
 run().catch((error) => core.setFailed(error));
@@ -12298,6 +12142,138 @@ exports.request = request;
 /***/ (function(module) {
 
 module.exports = require("zlib");
+
+/***/ }),
+
+/***/ 790:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const core = __webpack_require__(470);
+const github = __webpack_require__(469);
+const yaml = __webpack_require__(596);
+
+class PullRequest {
+  // ref: https://developer.github.com/v3/pulls/#get-a-pull-request
+  constructor(pull_request_paylaod) {
+    // "ncc" doesn't yet support private class fields as of 29 Aug. 2020
+    // ref: https://github.com/vercel/ncc/issues/499
+    this._pull_request_paylaod = pull_request_paylaod;
+  }
+
+  get author() {
+    return this._pull_request_paylaod.user.login;
+  }
+
+  get title() {
+    return this._pull_request_paylaod.title;
+  }
+
+  get is_draft() {
+    return this._pull_request_paylaod.draft;
+  }
+}
+
+function get_pull_request() {
+  const context = get_context();
+
+  return new PullRequest(context.payload.pull_request);
+}
+
+async function fetch_config() {
+  const context = get_context();
+  const octokit = get_octokit();
+  const config_path = get_config_path();
+
+  const { data: response_body } = await octokit.repos.getContent({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    path: config_path,
+    ref: context.payload.pull_request.base.ref, // base branch name the branch is going into
+  });
+
+  const content = Buffer.from(response_body.content, response_body.encoding).toString();
+  return yaml.parse(content);
+}
+
+async function fetch_changed_files() {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  const changed_files = [];
+
+  const per_page = 100;
+  let page = 0;
+  let number_of_files_in_current_page;
+
+  do {
+    page += 1;
+
+    const { data: response_body } = await octokit.pulls.listFiles({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+      page,
+      per_page,
+    });
+
+    number_of_files_in_current_page = response_body.length;
+    changed_files.push(...response_body.map((file) => file.filename));
+
+  } while (number_of_files_in_current_page === per_page);
+
+  return changed_files;
+}
+
+async function assign_reviewers(reviewers) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  return octokit.pulls.requestReviewers({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: context.payload.pull_request.number,
+    reviewers,
+  });
+}
+
+/* Private */
+
+let context_cache;
+let token_cache;
+let config_path_cache;
+let octokit_cache;
+
+function get_context() {
+  return context_cache || (context_cache = github.context);
+}
+
+function get_token() {
+  return token_cache || (token_cache = core.getInput('token'));
+}
+
+function get_config_path() {
+  return config_path_cache || (config_path_cache = core.getInput('config'));
+}
+
+function get_octokit() {
+  if (octokit_cache) {
+    return octokit_cache;
+  }
+
+  const token = get_token();
+  return octokit_cache = github.getOctokit(token);
+}
+
+module.exports = {
+  get_pull_request,
+  fetch_config,
+  fetch_changed_files,
+  assign_reviewers,
+};
+
 
 /***/ }),
 
@@ -13843,6 +13819,95 @@ function withCustomRequest(customRequest) {
 exports.graphql = graphql$1;
 exports.withCustomRequest = withCustomRequest;
 //# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 909:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const core = __webpack_require__(470);
+const minimatch = __webpack_require__(93);
+
+function fetch_other_group_members({ author, config }) {
+  const DEFAULT_OPTIONS = {
+    enable_group_assignment: false,
+  };
+
+  const { enable_group_assignment: should_group_assign } = {
+    ...DEFAULT_OPTIONS,
+    ...config.options,
+  };
+
+  if (!should_group_assign) {
+    core.info('Group assignment feature is disabled');
+    return [];
+  }
+
+  core.info('Group assignment feature is enabled');
+
+  const groups = (config.reviewers && config.reviewers.groups) || {};
+  const belonging_group_names = Object.entries(groups).map(([ group_name, members ]) =>
+    members.includes(author) ? group_name : undefined
+  ).filter((group_name) => group_name);
+
+  const other_group_members = belonging_group_names.flatMap((group_name) =>
+    groups[group_name]
+  ).filter((group_member) => group_member !== author);
+
+  return [ ...new Set(other_group_members) ];
+}
+
+function identify_reviewers({ config, changed_files, excludes = [] }) {
+  if (!config.files) {
+    core.info('A "files" key does not exist in config; returning no reviwers for changed files.');
+    return [];
+  }
+
+  const matching_reviwers = [];
+
+  Object.entries(config.files).forEach(([ glob_pattern, reviewers ]) => {
+    if (changed_files.some((changed_file) => minimatch(changed_file, glob_pattern))) {
+      matching_reviwers.push(...reviewers);
+    }
+  });
+
+  // Replace groups with indivisuals
+  const groups = (config.reviewers && config.reviewers.groups) || {};
+  const indivisuals = matching_reviwers.flatMap((reviewer) =>
+    Array.isArray(groups[reviewer]) ? groups[reviewer] : reviewer
+  );
+
+  // Depue and filter the results
+  return [ ...new Set(indivisuals) ].filter((reviewer) => !excludes.includes(reviewer));
+}
+
+function should_request_review({ title, is_draft, config }) {
+  const DEFAULT_OPTIONS = {
+    ignore_draft: true,
+    ignored_keywords: [ 'DO NOT REVIEW' ],
+  };
+
+  const { ignore_draft: should_ignore_draft, ignored_keywords } = {
+    ...DEFAULT_OPTIONS,
+    ...config.options,
+  };
+
+  if (should_ignore_draft && is_draft) {
+    return false;
+  }
+
+  return !ignored_keywords.some((keyword) => title.includes(keyword));
+}
+
+module.exports = {
+  fetch_other_group_members,
+  identify_reviewers,
+  should_request_review,
+};
 
 
 /***/ }),

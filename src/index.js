@@ -1,17 +1,19 @@
 'use strict';
 
 const core = require('@actions/core');
-const github = require('@actions/github');
-const yaml = require('yaml');
 
-const fetch_other_group_members = require('./fetch_other_group_members');
-const identify_reviewers = require('./identify_reviewers');
-const should_request_review = require('./should_request_review');
+const {
+  get_pull_request,
+  fetch_config,
+  fetch_changed_files,
+  assign_reviewers,
+} = require('./github');
 
-const context = github.context;
-const token = core.getInput('token');
-const config_path = core.getInput('config');
-const octokit = github.getOctokit(token);
+const {
+  fetch_other_group_members,
+  identify_reviewers,
+  should_request_review,
+} = require('./reviewer');
 
 async function run() {
   core.info('Fetching configuration file from the base branch');
@@ -28,8 +30,7 @@ async function run() {
     throw error;
   }
 
-  const title = context.payload.pull_request.title;
-  const is_draft = context.payload.pull_request.draft;
+  const { title, is_draft, author } = get_pull_request();
 
   if (!should_request_review({ title, is_draft, config })) {
     core.info('Matched the ignoring rules; terminating the process');
@@ -40,7 +41,6 @@ async function run() {
   const changed_files = await fetch_changed_files();
 
   core.info('Identifying reviewers based on the changed files and the configuration');
-  const author = context.payload.pull_request.user.login;
   const reviewers_based_on_files = identify_reviewers({ config, changed_files, excludes: [ author ] });
 
   core.info('Adding other group membres to reviwers if group assignment feature is on');
@@ -55,53 +55,6 @@ async function run() {
 
   core.info(`Requesting review to ${reviewers.join(', ')}`);
   await assign_reviewers(reviewers);
-}
-
-async function fetch_config() {
-  const { data: response_body } = await octokit.repos.getContent({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    path: config_path,
-    ref: context.payload.pull_request.base.ref, // base branch name the branch is going into
-  });
-
-  const content = Buffer.from(response_body.content, response_body.encoding).toString();
-  return yaml.parse(content);
-}
-
-async function fetch_changed_files() {
-  const changed_files = [];
-
-  const per_page = 100;
-  let page = 0;
-  let number_of_files_in_current_page;
-
-  do {
-    page += 1;
-
-    const { data: response_body } = await octokit.pulls.listFiles({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      pull_number: context.payload.pull_request.number,
-      page,
-      per_page,
-    });
-
-    number_of_files_in_current_page = response_body.length;
-    changed_files.push(...response_body.map((file) => file.filename));
-
-  } while (number_of_files_in_current_page === per_page);
-
-  return changed_files;
-}
-
-async function assign_reviewers(reviewers) {
-  return octokit.pulls.requestReviewers({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    pull_number: context.payload.pull_request.number,
-    reviewers,
-  });
 }
 
 run().catch((error) => core.setFailed(error));
