@@ -12255,6 +12255,7 @@ function get_token() {
 }
 
 function get_config_path() {
+  console.log(core.getInput('config'))
   return config_path_cache || (config_path_cache = core.getInput('config'));
 }
 

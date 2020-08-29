@@ -10,6 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Request review based on files changes and/or groups the author belongs to
-        uses: necojackarc/auto-request-review@master
+        uses: necojackarc/auto-request-review@address-remaining-issues-following-rebranding
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
