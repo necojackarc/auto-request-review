@@ -3932,35 +3932,6 @@ exports.scalarOptions = scalarOptions;
 
 /***/ }),
 
-/***/ 210:
-/***/ (function(module) {
-
-"use strict";
-
-
-const DEFAULT_OPTIONS = {
-  ignore_draft: true,
-  ignored_keywords: [ 'DO NOT REVIEW' ],
-};
-
-function should_request_review({ title, is_draft, config }) {
-  const { ignore_draft: should_ignore_draft, ignored_keywords } = {
-    ...DEFAULT_OPTIONS,
-    ...config.options,
-  };
-
-  if (should_ignore_draft && is_draft) {
-    return false;
-  }
-
-  return !ignored_keywords.some((keyword) => title.includes(keyword));
-}
-
-module.exports = should_request_review;
-
-
-/***/ }),
-
 /***/ 211:
 /***/ (function(module) {
 
@@ -6525,44 +6496,6 @@ exports.strOptions = strOptions;
 exports.stringifyNumber = stringifyNumber;
 exports.stringifyString = stringifyString;
 exports.toJSON = toJSON;
-
-
-/***/ }),
-
-/***/ 334:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const core = __webpack_require__(470);
-const minimatch = __webpack_require__(93);
-
-function identify_reviewers({ config, changed_files, excludes = [] }) {
-  if (!config.files) {
-    core.info('A "files" key does not exist in config; returning no reviwers for changed files.');
-    return [];
-  }
-
-  const matching_reviwers = [];
-
-  Object.entries(config.files).forEach(([ glob_pattern, reviewers ]) => {
-    if (changed_files.some((changed_file) => minimatch(changed_file, glob_pattern))) {
-      matching_reviwers.push(...reviewers);
-    }
-  });
-
-  // Replace groups with indivisuals
-  const groups = (config.reviewers && config.reviewers.groups) || {};
-  const indivisuals = matching_reviwers.flatMap((reviewer) =>
-    Array.isArray(groups[reviewer]) ? groups[reviewer] : reviewer
-  );
-
-  // Depue and filter the results
-  return [ ...new Set(indivisuals) ].filter((reviewer) => !excludes.includes(reviewer));
-}
-
-module.exports = identify_reviewers;
 
 
 /***/ }),
@@ -10299,48 +10232,6 @@ module.exports.Collection = Hook.Collection
 
 /***/ }),
 
-/***/ 524:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const core = __webpack_require__(470);
-
-const DEFAULT_OPTIONS = {
-  enable_group_assignment: false,
-};
-
-function fetch_other_group_members({ author, config }) {
-  const { enable_group_assignment: should_group_assign } = {
-    ...DEFAULT_OPTIONS,
-    ...config.options,
-  };
-
-  if (!should_group_assign) {
-    core.info('Group assignment feature is disabled');
-    return [];
-  }
-
-  core.info('Group assignment feature is enabled');
-
-  const groups = (config.reviewers && config.reviewers.groups) || {};
-  const belonging_group_names = Object.entries(groups).map(([ group_name, members ]) =>
-    members.includes(author) ? group_name : undefined
-  ).filter((group_name) => group_name);
-
-  const other_group_members = belonging_group_names.flatMap((group_name) =>
-    groups[group_name]
-  ).filter((group_member) => group_member !== author);
-
-  return [ ...new Set(other_group_members) ];
-}
-
-module.exports = fetch_other_group_members;
-
-
-/***/ }),
-
 /***/ 525:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -11959,9 +11850,11 @@ const {
   assign_reviewers,
 } = __webpack_require__(790);
 
-const fetch_other_group_members = __webpack_require__(524);
-const identify_reviewers = __webpack_require__(334);
-const should_request_review = __webpack_require__(210);
+const {
+  fetch_other_group_members,
+  identify_reviewers,
+  should_request_review,
+} = __webpack_require__(909);
 
 async function run() {
   core.info('Fetching configuration file from the base branch');
@@ -13926,6 +13819,95 @@ function withCustomRequest(customRequest) {
 exports.graphql = graphql$1;
 exports.withCustomRequest = withCustomRequest;
 //# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 909:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const core = __webpack_require__(470);
+const minimatch = __webpack_require__(93);
+
+function fetch_other_group_members({ author, config }) {
+  const DEFAULT_OPTIONS = {
+    enable_group_assignment: false,
+  };
+
+  const { enable_group_assignment: should_group_assign } = {
+    ...DEFAULT_OPTIONS,
+    ...config.options,
+  };
+
+  if (!should_group_assign) {
+    core.info('Group assignment feature is disabled');
+    return [];
+  }
+
+  core.info('Group assignment feature is enabled');
+
+  const groups = (config.reviewers && config.reviewers.groups) || {};
+  const belonging_group_names = Object.entries(groups).map(([ group_name, members ]) =>
+    members.includes(author) ? group_name : undefined
+  ).filter((group_name) => group_name);
+
+  const other_group_members = belonging_group_names.flatMap((group_name) =>
+    groups[group_name]
+  ).filter((group_member) => group_member !== author);
+
+  return [ ...new Set(other_group_members) ];
+}
+
+function identify_reviewers({ config, changed_files, excludes = [] }) {
+  if (!config.files) {
+    core.info('A "files" key does not exist in config; returning no reviwers for changed files.');
+    return [];
+  }
+
+  const matching_reviwers = [];
+
+  Object.entries(config.files).forEach(([ glob_pattern, reviewers ]) => {
+    if (changed_files.some((changed_file) => minimatch(changed_file, glob_pattern))) {
+      matching_reviwers.push(...reviewers);
+    }
+  });
+
+  // Replace groups with indivisuals
+  const groups = (config.reviewers && config.reviewers.groups) || {};
+  const indivisuals = matching_reviwers.flatMap((reviewer) =>
+    Array.isArray(groups[reviewer]) ? groups[reviewer] : reviewer
+  );
+
+  // Depue and filter the results
+  return [ ...new Set(indivisuals) ].filter((reviewer) => !excludes.includes(reviewer));
+}
+
+function should_request_review({ title, is_draft, config }) {
+  const DEFAULT_OPTIONS = {
+    ignore_draft: true,
+    ignored_keywords: [ 'DO NOT REVIEW' ],
+  };
+
+  const { ignore_draft: should_ignore_draft, ignored_keywords } = {
+    ...DEFAULT_OPTIONS,
+    ...config.options,
+  };
+
+  if (should_ignore_draft && is_draft) {
+    return false;
+  }
+
+  return !ignored_keywords.some((keyword) => title.includes(keyword));
+}
+
+module.exports = {
+  fetch_other_group_members,
+  identify_reviewers,
+  should_request_review,
+};
 
 
 /***/ }),

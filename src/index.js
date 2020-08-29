@@ -9,9 +9,11 @@ const {
   assign_reviewers,
 } = require('./github');
 
-const fetch_other_group_members = require('./fetch_other_group_members');
-const identify_reviewers = require('./identify_reviewers');
-const should_request_review = require('./should_request_review');
+const {
+  fetch_other_group_members,
+  identify_reviewers,
+  should_request_review,
+} = require('./reviewer');
 
 async function run() {
   core.info('Fetching configuration file from the base branch');
