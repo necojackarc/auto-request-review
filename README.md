@@ -1,8 +1,8 @@
-# Request Review Based on Files
+# Auto Request Review
 
 ![Test](https://github.com/necojackarc/request-review-based-on-files/workflows/Test/badge.svg)
 
-A GitHub Action that automatically requests review of a pull request based on files changes and/or groups the author belongs to
+A GitHub Action automatically requests review of a pull request based on files changes and/or groups the author belongs to 🤖
 
 ## Notable Features
 This GitHub Action enables you to:

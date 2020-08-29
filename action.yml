@@ -1,8 +1,8 @@
-name: 'Request Review Based on Files'
-description: 'Request review based on files changed'
+name: 'Auto Request Review'
+description: 'Automatically requests review of a pull request based on files changes and/or groups the author belongs to 🤖'
 branding:
   icon: 'at-sign'
-  color: 'red'
+  color: 'green'
 inputs:
   token:
     required: true
