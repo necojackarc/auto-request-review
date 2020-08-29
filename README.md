@@ -1,6 +1,6 @@
 # Auto Request Review
 
-![Test](https://github.com/necojackarc/request-review-based-on-files/workflows/Test/badge.svg)
+![Test](https://github.com/necojackarc/auto-request-review/workflows/Test/badge.svg)
 
 A GitHub Action automatically requests review of a pull request based on files changes and/or groups the author belongs to 🤖
 
