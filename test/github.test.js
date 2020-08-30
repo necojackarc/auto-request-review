@@ -18,6 +18,8 @@ const {
 
 describe('github', function() {
   beforeEach(function() {
+    clear_cache();
+
     const context = ContextStub.build();
     github.context = context;
 
@@ -26,7 +28,6 @@ describe('github', function() {
   });
 
   afterEach(function() {
-    clear_cache();
     core.getInput.restore();
     github.getOctokit.restore();
   });
