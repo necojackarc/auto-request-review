@@ -6,7 +6,8 @@
   "scripts": {
     "build": "ncc build src/index.js",
     "lint": "eslint src",
-    "test": "nyc --all mocha test"
+    "test": "nyc --all mocha test",
+    "coverage": "nyc report --reporter=text-lcov > coverage/lcov.info"
   },
   "keywords": [],
   "author": "Taka <necojackarc@gmail.com>",
