@@ -1,6 +1,7 @@
 # Auto Request Review
 
 ![CI](https://github.com/necojackarc/auto-request-review/workflows/CI/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/necojackarc/auto-request-review/badge.svg?branch=master)](https://coveralls.io/github/necojackarc/auto-request-review?branch=master)
 
 A GitHub Action automatically requests review of a pull request based on files changes and/or groups the author belongs to 🤖
 
