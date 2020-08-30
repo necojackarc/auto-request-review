@@ -1,13 +1,7 @@
 'use strict';
 
 const core = require('@actions/core');
-
-const {
-  get_pull_request,
-  fetch_config,
-  fetch_changed_files,
-  assign_reviewers,
-} = require('./github');
+const github = require('./github'); // Don't destructure this object to stub with sinon in tests
 
 const {
   fetch_other_group_members,
@@ -21,7 +15,7 @@ async function run() {
   let config;
 
   try {
-    config = await fetch_config();
+    config = await github.fetch_config();
   } catch (error) {
     if (error.status === 404) {
       core.warning('No configuration file is found in the base branch; terminating the process');
@@ -30,7 +24,7 @@ async function run() {
     throw error;
   }
 
-  const { title, is_draft, author } = get_pull_request();
+  const { title, is_draft, author } = github.get_pull_request();
 
   if (!should_request_review({ title, is_draft, config })) {
     core.info('Matched the ignoring rules; terminating the process');
@@ -38,7 +32,7 @@ async function run() {
   }
 
   core.info('Fetching changed files in the pull request');
-  const changed_files = await fetch_changed_files();
+  const changed_files = await github.fetch_changed_files();
 
   core.info('Identifying reviewers based on the changed files and the configuration');
   const reviewers_based_on_files = identify_reviewers({ config, changed_files, excludes: [ author ] });
@@ -54,7 +48,11 @@ async function run() {
   }
 
   core.info(`Requesting review to ${reviewers.join(', ')}`);
-  await assign_reviewers(reviewers);
+  await github.assign_reviewers(reviewers);
 }
 
 run().catch((error) => core.setFailed(error));
+
+module.exports = {
+  run,
+};

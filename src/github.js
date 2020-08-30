@@ -116,9 +116,17 @@ function get_octokit() {
   return octokit_cache = github.getOctokit(token);
 }
 
+function clear_cache() {
+  context_cache = undefined;
+  token_cache = undefined;
+  config_path_cache = undefined;
+  octokit_cache = undefined;
+}
+
 module.exports = {
   get_pull_request,
   fetch_config,
   fetch_changed_files,
   assign_reviewers,
+  clear_cache,
 };

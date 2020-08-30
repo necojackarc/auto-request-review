@@ -23,7 +23,7 @@ class ContextStub {
   get repo() {
     return {
       owner: 'necojackarc',
-      repo: 'request-review-based-on-files',
+      repo: 'auto-request-review',
     };
   }
 }

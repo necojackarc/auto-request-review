@@ -1,23 +1,155 @@
 'use strict';
 
-// const github = require('../src/github');
-// const { expect } = require('chai');
+const core = require('@actions/core');
+const fs = require('fs');
+const github = require('@actions/github');
+const sinon = require('sinon');
+const yaml = require('yaml');
+const { ContextStub } = require('./stubs/context');
+const { expect } = require('chai');
+
+const {
+  get_pull_request,
+  fetch_config,
+  fetch_changed_files,
+  assign_reviewers,
+  clear_cache,
+} = require('../src/github');
 
 describe('github', function() {
+  beforeEach(function() {
+    clear_cache();
+
+    const context = ContextStub.build();
+    github.context = context;
+
+    sinon.stub(core, 'getInput');
+    sinon.stub(github, 'getOctokit');
+  });
+
+  afterEach(function() {
+    core.getInput.restore();
+    github.getOctokit.restore();
+  });
+
   describe('get_pull_request()', function() {
-    // TODO: #16 Add tests
-    // Check a returned object responds to `title`, `author`, and `is_draft`
+    it('returns pull request data', function() {
+      const pull_request = get_pull_request();
+
+      // See the default values of ContextStub
+      expect(pull_request.title).to.equal('Extract GitHub related functions into a github module');
+      expect(pull_request.author).to.equal('necojackarc');
+      expect(pull_request.is_draft).to.be.false;
+    });
   });
 
   describe('fetch_config()', function() {
-    // TODO: #16 Add tests
+    const config_path = '.github/auto_request_review.yml';
+    const encoding = 'utf8';
+    const content = fs.readFileSync(config_path, encoding);
+
+    const octokit = {
+      repos: {
+        getContent() {
+          return {
+            data: {
+              encoding,
+              content,
+            },
+          };
+        },
+      },
+    };
+
+    beforeEach(function() {
+      core.getInput.withArgs('config').returns(config_path);
+      github.getOctokit.returns(octokit);
+    });
+
+    it('returns a config object', async function() {
+      const expected = yaml.parse(Buffer.from(content, encoding).toString());
+      const actual = await fetch_config();
+      expect(actual).to.deep.equal(expected);
+    });
   });
 
   describe('fetch_changed_files()', function() {
-    // TODO: #16 Add tests
+    const stub = sinon.stub();
+    const octokit = {
+      pulls: {
+        listFiles: stub,
+      },
+    };
+
+    beforeEach(function() {
+      github.getOctokit.returns(octokit);
+    });
+
+    it('fetch changed files', async function() {
+      stub.returns({
+        data: [
+          { filename: 'super/mario/64' },
+          { filename: 'paper/mario' },
+        ],
+      });
+      const expected = [ 'super/mario/64', 'paper/mario' ];
+      const actual = await fetch_changed_files();
+      expect(actual).to.deep.equal(expected);
+    });
+
+    it('fetch changed files through the last page', async function() {
+      const filenames = [];
+      for (let i = 0; i < 222; i += 1) {
+        filenames.push(`path/to/file${i}`);
+      }
+
+      const page_size = 100;
+      const filenames_in_chunks = [];
+      for (let i = 0; i < filenames.length; i += page_size) {
+        filenames_in_chunks.push(filenames.slice(i, i + page_size));
+      }
+
+      // Make sure filenames are correctly split into chunks
+      expect(filenames_in_chunks[0].length).to.equal(100);
+      expect(filenames_in_chunks[1].length).to.equal(100);
+      expect(filenames_in_chunks[2].length).to.equal(22);
+
+      stub.onCall(1).returns({ data: filenames_in_chunks[0].map((filename) => ({ filename })) });
+      stub.onCall(2).returns({ data: filenames_in_chunks[1].map((filename) => ({ filename })) });
+      stub.onCall(3).returns({ data: filenames_in_chunks[2].map((filename) => ({ filename })) });
+
+      const changed_files = await fetch_changed_files();
+      expect(changed_files).to.have.members(filenames);
+    });
   });
 
   describe('assign_reviewers()', function() {
-    // TODO: #16 Add tests
+    const spy = sinon.spy();
+    const octokit = {
+      pulls: {
+        requestReviewers: spy,
+      },
+    };
+
+    beforeEach(function() {
+      github.getOctokit.resetBehavior();
+      github.getOctokit.returns(octokit);
+    });
+
+    it('assigns reviwers', async function() {
+      const reviewers = [ 'mario', 'princess-peach' ];
+      await assign_reviewers(reviewers);
+
+      expect(spy.calledOnce).to.be.true;
+      expect(spy.lastCall.args[0]).to.deep.equal({
+        owner: 'necojackarc',
+        pull_number: 18,
+        repo: 'auto-request-review',
+        reviewers: [
+          'mario',
+          'princess-peach',
+        ],
+      });
+    });
   });
 });

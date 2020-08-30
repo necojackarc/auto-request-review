@@ -1,5 +1,5 @@
 {
-  "name": "request-review-based-on-files",
+  "name": "auto-request-review",
   "version": "0.1.2",
   "description": "GitHub Action that automatically requests review of a pull request based on files changed",
   "main": "index.js",
@@ -23,7 +23,8 @@
     "chai": "^4.2.0",
     "eslint": "^7.7.0",
     "mocha": "^8.1.2",
-    "nyc": "^15.1.0"
+    "nyc": "^15.1.0",
+    "sinon": "^9.0.3"
   },
   "nyc": {
     "include": [
