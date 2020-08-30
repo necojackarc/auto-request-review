@@ -1,0 +1,4 @@
+.node-version
+.nyc_output
+coverage
+node_modules
