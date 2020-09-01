@@ -84,7 +84,7 @@ The format of a configuration file is as follows:
 
 ```yaml
 reviewers:
-  # The default owners
+  # The default reviewers
   defaults:
     - repository-owners
     - octocat
