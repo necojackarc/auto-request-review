@@ -60,8 +60,11 @@ async function run() {
   await github.assign_reviewers(reviewers);
 }
 
-run().catch((error) => core.setFailed(error));
-
 module.exports = {
   run,
 };
+
+// Run the action if it's not running in an automated testing environment
+if (process.env.NODE_ENV !== 'automated-testing') {
+  run().catch((error) => core.setFailed(error));
+}
