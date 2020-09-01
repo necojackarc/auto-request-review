@@ -13914,7 +13914,7 @@ function should_request_review({ title, is_draft, config }) {
   return !ignored_keywords.some((keyword) => title.includes(keyword));
 }
 
-function fetch_default_reviwers({ config, excludes = []}) {
+function fetch_default_reviwers({ config, excludes = [] }) {
   if (!config.reviewers || !Array.isArray(config.reviewers.defaults)) {
     return [];
   }
