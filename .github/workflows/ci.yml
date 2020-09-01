@@ -26,6 +26,13 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    - name: Check if dist is updated
+      run: |
+        npm run build
+        set -e # exit immediatel if a command below returns a non-zero status
+        git status # display the reuslts for debugging
+        test -z "$(git status --porcelain)"
+
     - name: Run linter and tests
       run: |
         npm run lint

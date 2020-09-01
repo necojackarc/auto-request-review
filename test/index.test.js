@@ -28,10 +28,16 @@ describe('index', function() {
       github.assign_reviewers.restore();
     });
 
-    it('requests review based on files chnaged', async function() {
+    it('requests review based on files changed', async function() {
       const config = {
+        reviewers: {
+          defaults: [ 'dr-mario' ],
+          groups: {
+            'mario-brothers': [ 'mario', 'luigi' ],
+          },
+        },
         files: {
-          '**/*.js': [ 'mario', 'luigi', 'princess-peach' ],
+          '**/*.js': [ 'mario-brothers', 'princess-peach' ],
           '**/*.rb': [ 'wario', 'waluigi' ],
         },
       };
@@ -56,6 +62,7 @@ describe('index', function() {
     it('requests reivew based on groups that authoer belongs to', async function() {
       const config = {
         reviewers: {
+          defaults: [ 'dr-mario' ],
           groups: {
             'mario-brothers': [ 'mario', 'dr-mario', 'luigi' ],
             'mario-alike': [ 'mario', 'dr-mario', 'wario' ],
@@ -85,6 +92,9 @@ describe('index', function() {
 
     it('does not request review with "ignore_draft" true if a pull request is a draft', async function() {
       const config = {
+        reviewers: {
+          defaults: [ 'dr-mario' ],
+        },
         options: {
           ignore_draft: true,
         },
@@ -108,6 +118,9 @@ describe('index', function() {
 
     it('does not request review if a pull request title contains any of "ignored_keywords"', async function() {
       const config = {
+        reviewers: {
+          defaults: [ 'dr-mario' ],
+        },
         options: {
           ignored_keywords: [ 'NOT NICE' ],
         },
@@ -127,6 +140,66 @@ describe('index', function() {
       await run();
 
       expect(github.assign_reviewers.calledOnce).to.be.false;
+    });
+
+    it('does not request review if no reviwers are matched and default reviweres are not set', async function() {
+      const config = {
+        reviewers: {
+          groups: {
+            'mario-brothers': [ 'mario', 'luigi' ],
+          },
+        },
+        files: {
+          '**/*.js': [ 'mario-brothers', 'princess-peach' ],
+          '**/*.rb': [ 'wario', 'waluigi' ],
+        },
+      };
+      github.fetch_config.returns(config);
+
+      const pull_request = {
+        title: 'Nice Pull Request',
+        is_draft: false,
+        author: 'luigi',
+      };
+      github.get_pull_request.returns(pull_request);
+
+      const changed_fiels = [ 'path/to/file.py' ];
+      github.fetch_changed_files.returns(changed_fiels);
+
+      await run();
+
+      expect(github.assign_reviewers.calledOnce).to.be.false;
+    });
+
+    it('requests review to the default reviwers if no reviwers are matched', async function() {
+      const config = {
+        reviewers: {
+          defaults: [ 'dr-mario', 'mario-brothers' ],
+          groups: {
+            'mario-brothers': [ 'mario', 'luigi' ],
+          },
+        },
+        files: {
+          '**/*.js': [ 'mario-brothers', 'princess-peach' ],
+          '**/*.rb': [ 'wario', 'waluigi' ],
+        },
+      };
+      github.fetch_config.returns(config);
+
+      const pull_request = {
+        title: 'Nice Pull Request',
+        is_draft: false,
+        author: 'luigi',
+      };
+      github.get_pull_request.returns(pull_request);
+
+      const changed_fiels = [ 'path/to/file.py' ];
+      github.fetch_changed_files.returns(changed_fiels);
+
+      await run();
+
+      expect(github.assign_reviewers.calledOnce).to.be.true;
+      expect(github.assign_reviewers.lastCall.args[0]).to.have.members([ 'dr-mario', 'mario' ]);
     });
   });
 });
