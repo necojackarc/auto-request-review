@@ -6,7 +6,7 @@
 A GitHub Action automatically requests review of a pull request based on files changes and/or groups the author belongs to 🤖
 
 ## Motivation
-It varies depending on the team who should review which pull requests. In some teams, review requests are randomly assigned while others prefer to have them reviewed by every one of the team members. With the default features, [code review assignments](https://docs.github.com/en/github/setting-up-and-managing-organizations-and-teams/managing-code-review-assignment-for-your-team) and [code owners](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners), you can cover only a couple of user cases.
+It varies depending on the team who should review which pull requests. In some teams, review requests are randomly assigned while others prefer to have them reviewed by every one of the team members. With the default features, [code review assignments](https://docs.github.com/en/github/setting-up-and-managing-organizations-and-teams/managing-code-review-assignment-for-your-team) and [code owners](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners), you can cover only a couple of use cases - in other words, there are other cases they don't cover.
 
 This GitHub Action best suits any of the following needs:
 
