@@ -4,6 +4,7 @@ const {
   fetch_other_group_members,
   identify_reviewers,
   should_request_review,
+  fetch_default_reviwers,
 } = require('../src/reviewer');
 const { expect } = require('chai');
 
@@ -224,6 +225,32 @@ describe('reviewer', function() {
 
       expect(should_request_review({ title: '[DO NOT REVIEW] THIS MATTERS', is_draft: false, config })).to.be.false;
       expect(should_request_review({ title: 'THIS MATTERS', is_draft: false, config })).to.be.true;
+    });
+  });
+
+  describe('fetch_default_reviwers()', function() {
+    it('fetches the default reviwers', function() {
+      const config = {
+        reviewers: {
+          defaults: [ 'dr-mario', 'mario-brothers' ],
+          groups: {
+            'mario-brothers': [ 'mario', 'luigi' ],
+          },
+        },
+      };
+      expect(fetch_default_reviwers({ config })).to.have.members([ 'dr-mario', 'mario', 'luigi' ]);
+    });
+
+    it('fetches the default reviwers exluding specified ones in the excludes option', function() {
+      const config = {
+        reviewers: {
+          defaults: [ 'dr-mario', 'mario-brothers' ],
+          groups: {
+            'mario-brothers': [ 'mario', 'luigi' ],
+          },
+        },
+      };
+      expect(fetch_default_reviwers({ config, excludes: [ 'luigi' ]})).to.have.members([ 'dr-mario', 'mario' ]);
     });
   });
 });

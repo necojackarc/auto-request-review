@@ -92,7 +92,7 @@ describe('index', function() {
 
     it('does not request review with "ignore_draft" true if a pull request is a draft', async function() {
       const config = {
-        reviwers: {
+        reviewers: {
           defaults: [ 'dr-mario' ],
         },
         options: {
@@ -118,7 +118,7 @@ describe('index', function() {
 
     it('does not request review if a pull request title contains any of "ignored_keywords"', async function() {
       const config = {
-        reviwers: {
+        reviewers: {
           defaults: [ 'dr-mario' ],
         },
         options: {
@@ -144,7 +144,7 @@ describe('index', function() {
 
     it('does not request review if no reviwers are matched and default reviweres are not set', async function() {
       const config = {
-        reviwers: {
+        reviewers: {
           groups: {
             'mario-brothers': [ 'mario', 'luigi' ],
           },
@@ -173,7 +173,7 @@ describe('index', function() {
 
     it('requests review to the default reviwers if no reviwers are matched', async function() {
       const config = {
-        reviwers: {
+        reviewers: {
           defaults: [ 'dr-mario', 'mario-brothers' ],
           groups: {
             'mario-brothers': [ 'mario', 'luigi' ],

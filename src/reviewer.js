@@ -46,11 +46,7 @@ function identify_reviewers({ config, changed_files, excludes = [] }) {
     }
   });
 
-  // Replace groups with indivisuals
-  const groups = (config.reviewers && config.reviewers.groups) || {};
-  const indivisuals = matching_reviwers.flatMap((reviewer) =>
-    Array.isArray(groups[reviewer]) ? groups[reviewer] : reviewer
-  );
+  const indivisuals = replace_groups_with_individuals({ reviewers: matching_reviwers, config });
 
   // Depue and filter the results
   return [ ...new Set(indivisuals) ].filter((reviewer) => !excludes.includes(reviewer));
@@ -74,8 +70,29 @@ function should_request_review({ title, is_draft, config }) {
   return !ignored_keywords.some((keyword) => title.includes(keyword));
 }
 
+function fetch_default_reviwers({ config, excludes = []}) {
+  if (!config.reviewers || !Array.isArray(config.reviewers.defaults)) {
+    return [];
+  }
+
+  const indivisuals = replace_groups_with_individuals({ reviewers: config.reviewers.defaults, config });
+
+  // Depue and filter the results
+  return [ ...new Set(indivisuals) ].filter((reviewer) => !excludes.includes(reviewer));
+}
+
+/* Private */
+
+function replace_groups_with_individuals({ reviewers, config }) {
+  const groups = (config.reviewers && config.reviewers.groups) || {};
+  return reviewers.flatMap((reviewer) =>
+    Array.isArray(groups[reviewer]) ? groups[reviewer] : reviewer
+  );
+}
+
 module.exports = {
   fetch_other_group_members,
   identify_reviewers,
   should_request_review,
+  fetch_default_reviwers,
 };
