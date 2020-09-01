@@ -10,6 +10,7 @@ This GitHub Action enables you to:
 
 - Auto-assign reviewers based on files changed
 - Auto-assign reviewers based on groups that the author belongs to
+- Auto-assign the default reviwers if no reviwers are matched to your rules
 - Request review only in certain conditions
 
 ###  Auto-assign reviewers based on files changed
@@ -33,6 +34,15 @@ reviewers:
 
 options:
   enable_group_assignment: false
+```
+
+### Auto-assign the default reviwers if no reviwers are matched to your rules
+You can define the default reviwers who will be assigned when no reivwers are matched to your rules.
+
+```yaml
+reviewers:
+  default:
+    - repository-owners
 ```
 
 ### Request review only in certain conditions
@@ -71,10 +81,16 @@ The format of a configuration file is as follows:
 
 ```yaml
 reviewers:
+  # The default owners
+  defaults:
+    - repository-owners
+    - octocat
+
   # Reviewer groups each of which has a list of GitHub usernames
   groups:
-    repository-owner:
+    repository-owners:
       - me # username
+      - you # username
     core-contributors:
       - good-boy # username
       - good-girl # username
@@ -86,7 +102,7 @@ files:
   # Keys are glob expressions.
   # You can assign groups defined above as well as GitHub usernames.
   '**':
-    - repository-owner # group
+    - repository-owners # group
   '**/*.js':
     - core-contributors # group
     - js-lovers # group
@@ -122,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Request review based on files changes and/or groups the author belongs to
-        uses: necojackarc/auto-request-review@v0.1.2
+        uses: necojackarc/auto-request-review@v0.2.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: .github/reviewers.yml # Config file location override
