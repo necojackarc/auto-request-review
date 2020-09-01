@@ -5,12 +5,26 @@
 
 A GitHub Action automatically requests review of a pull request based on files changes and/or groups the author belongs to 🤖
 
+## Motivation
+It varies depending on the team who should review which pull requests. In some teams, review requests are randomly assigned while others prefer to have them reviewed by every one of the team members. With the default features, [code review assignments](https://docs.github.com/en/github/setting-up-and-managing-organizations-and-teams/managing-code-review-assignment-for-your-team) and [code owners](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners), you can cover only a couple of user cases.
+
+This GitHub Action best suits any of the following needs:
+
+- You'd like to request review based on files changed
+- You'd like to request review to all of the other team members
+- You'd like to keep code owners real code owners, not just reviewers
+
+Overall, if you'd like to request review to a certain set of members based on groups and/or files changed, this GitHub Action works best.
+
+### Code owners vs reviewers
+Code owners own or are responsible for the code in their spaces while reviewers just review it. Some teams distinguish them clearly. For instance, in some teams, you need to get in total two approvals to merge your pull request; one is from one of the code owners and the other is from any of your team members. Another use case is that you'd like certain members to have a look if time permits as an optional and additional review while the code owners have to review it.
+
 ## Notable Features
 This GitHub Action enables you to:
 
 - Auto-assign reviewers based on files changed
 - Auto-assign reviewers based on groups that the author belongs to
-- Auto-assign the default reviwers if no reviwers are matched to your rules
+- Auto-assign the default reviewers if no reviewers are matched to your rules
 - Request review only in certain conditions
 
 ###  Auto-assign reviewers based on files changed
@@ -36,8 +50,8 @@ options:
   enable_group_assignment: false
 ```
 
-### Auto-assign the default reviwers if no reviwers are matched to your rules
-You can define the default reviwers who will be assigned when no reivwers are matched to your rules.
+### Auto-assign the default reviewers if no reviewers are matched to your rules
+You can define the default reviewers who will be assigned when no reviewers are matched to your rules.
 
 ```yaml
 reviewers:
@@ -56,17 +70,6 @@ options:
   ignored_keywords:
     - DO NOT REVIEW
 ```
-
-## Motivation
-It varies depending on the team who should review which pull requests. In some teams, review requests are randomly assigned while others prefer to have them reviewed by every one of the team members. With the default features, [code review assignments](https://docs.github.com/en/github/setting-up-and-managing-organizations-and-teams/managing-code-review-assignment-for-your-team) and [code owners](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners), you can cover only a couple of user cases.
-
-This GitHub Action best suits any of the following needs:
-
-- You'd like to request review based on files changed
-- You'd like to request review to all of the other team members
-- You'd like to keep code owners real code owners, not just reviewers
-
-Overall, if you'd like to request review to a certain set of members based on groups and/or files changed, this GitHub Action works best.
 
 ## Configuration
 You need to prepare two YAML files for:
