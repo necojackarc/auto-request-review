@@ -3,6 +3,7 @@
 const {
   fetch_other_group_members,
   identify_reviewers_by_changed_files,
+  identify_reviewers_by_author,
   should_request_review,
   fetch_default_reviwers,
 } = require('../src/reviewer');
@@ -111,6 +112,47 @@ describe('reviewer', function() {
       const changed_files = [ 'super-star', 'frontend/file', 'backend/file' ];
       const excludes = [ 'wario', 'waluigi' ];
       expect(identify_reviewers_by_changed_files({ config, changed_files, excludes })).to.have.members([ 'mario', 'luigi', 'princess-peach', 'toad' ]);
+    });
+  });
+
+  describe('identify_reviewers_by_author()', function() {
+    const config = {
+      reviewers: {
+        groups: {
+          engineers: [ 'mario', 'luigi', 'wario', 'waluigi' ],
+          designers: [ 'mario', 'princess-peach', 'princess-daisy' ],
+        },
+        per_author: {
+          engineers: [ 'engineers', 'dr-mario' ],
+          designers: [ 'designers' ],
+          yoshi: [ 'mario', 'luige' ],
+        },
+      },
+    };
+
+    it('returns nothing when config does not have a "per-author" key', function() {
+      const author = 'THIS DOES NOT MATTER';
+      expect(identify_reviewers_by_author({ config: { reviwers: {} }, author })).to.deep.equal([]);
+    });
+
+    it('returns nothing when the author does not exist in the "per-author" settings', function() {
+      const author = 'toad';
+      expect(identify_reviewers_by_author({ config, author })).to.deep.equal([]);
+    });
+
+    it('returns the reviwers for the author', function() {
+      const author = 'yoshi';
+      expect(identify_reviewers_by_author({ config, author })).to.have.members([ 'mario', 'luige' ]);
+    });
+
+    it('works when a author setting is specified with a group', function() {
+      const author = 'luigi';
+      expect(identify_reviewers_by_author({ config, author })).to.have.members([ 'mario', 'wario', 'waluigi', 'dr-mario' ]);
+    });
+
+    it('works when the author belongs to more than one group', function() {
+      const author = 'mario';
+      expect(identify_reviewers_by_author({ config, author })).to.have.members([ 'dr-mario', 'luigi', 'wario', 'waluigi', 'princess-peach', 'princess-daisy' ]);
     });
   });
 
@@ -250,7 +292,7 @@ describe('reviewer', function() {
           },
         },
       };
-      expect(fetch_default_reviwers({ config, excludes: [ 'luigi' ]})).to.have.members([ 'dr-mario', 'mario' ]);
+      expect(fetch_default_reviwers({ config, excludes: [ 'luigi' ] })).to.have.members([ 'dr-mario', 'mario' ]);
     });
   });
 });

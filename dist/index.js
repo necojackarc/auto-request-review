@@ -11847,6 +11847,7 @@ const github = __webpack_require__(790); // Don't destructure this object to stu
 const {
   fetch_other_group_members,
   identify_reviewers_by_changed_files,
+  identify_reviewers_by_author,
   should_request_review,
   fetch_default_reviwers,
 } = __webpack_require__(909);
@@ -11876,13 +11877,16 @@ async function run() {
   core.info('Fetching changed files in the pull request');
   const changed_files = await github.fetch_changed_files();
 
-  core.info('Identifying reviewers based on the changed files and the configuration');
+  core.info('Identifying reviewers based on the changed files');
   const reviewers_based_on_files = identify_reviewers_by_changed_files({ config, changed_files, excludes: [ author ] });
+
+  core.info('Identifying reviewers based on the author');
+  const reviewers_based_on_author = identify_reviewers_by_author({ config, author });
 
   core.info('Adding other group membres to reviwers if group assignment feature is on');
   const reviwers_from_same_teams = fetch_other_group_members({ config, author });
 
-  const reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviwers_from_same_teams ]) ];
+  const reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviewers_based_on_author, ...reviwers_from_same_teams ]) ];
 
   if (reviewers.length === 0) {
     core.info('Matched no reviwers');
@@ -13885,18 +13889,47 @@ function identify_reviewers_by_changed_files({ config, changed_files, excludes =
     return [];
   }
 
-  const matching_reviwers = [];
+  const matching_reviewers = [];
 
   Object.entries(config.files).forEach(([ glob_pattern, reviewers ]) => {
     if (changed_files.some((changed_file) => minimatch(changed_file, glob_pattern))) {
-      matching_reviwers.push(...reviewers);
+      matching_reviewers.push(...reviewers);
     }
   });
 
-  const indivisuals = replace_groups_with_individuals({ reviewers: matching_reviwers, config });
+  const indivisuals = replace_groups_with_individuals({ reviewers: matching_reviewers, config });
 
   // Depue and filter the results
   return [ ...new Set(indivisuals) ].filter((reviewer) => !excludes.includes(reviewer));
+}
+
+function identify_reviewers_by_author({ config, 'author': specified_author }) {
+  if (!(config.reviewers && config.reviewers.per_author)) {
+    core.info('"per_author" is not set; returning no reviwers for the author.');
+    return [];
+  }
+
+  // More than one author can be matched because groups are set as authors
+  const matching_authors = Object.keys(config.reviewers.per_author).filter((author) => {
+    if (author === specified_author) {
+      return true;
+    }
+
+    const indivisuals_in_author_setting = replace_groups_with_individuals({ reviewers: [ author ], config });
+
+    if (indivisuals_in_author_setting.includes(specified_author)) {
+      return true;
+    }
+
+    return false;
+  });
+
+  const matching_reviewers = matching_authors.flatMap((matching_author) => {
+    const reviewers = config.reviewers.per_author[matching_author] || [];
+    return replace_groups_with_individuals({ reviewers, config });
+  });
+
+  return matching_reviewers.filter((reviewer) => reviewer !== specified_author);
 }
 
 function should_request_review({ title, is_draft, config }) {
@@ -13940,6 +13973,7 @@ function replace_groups_with_individuals({ reviewers, config }) {
 module.exports = {
   fetch_other_group_members,
   identify_reviewers_by_changed_files,
+  identify_reviewers_by_author,
   should_request_review,
   fetch_default_reviwers,
 };

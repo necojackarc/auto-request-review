@@ -211,7 +211,7 @@ describe('index', function() {
             'mario-alike': [ 'mario', 'dr-mario', 'wario' ],
           },
           per_author: {
-            luigi: [ 'mario, waluigi' ],
+            luigi: [ 'mario', 'waluigi' ],
           },
         },
       };
