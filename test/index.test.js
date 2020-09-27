@@ -201,5 +201,67 @@ describe('index', function() {
       expect(github.assign_reviewers.calledOnce).to.be.true;
       expect(github.assign_reviewers.lastCall.args[0]).to.have.members([ 'dr-mario', 'mario' ]);
     });
+
+    it('requests review based on reviwers per author', async function() {
+      const config = {
+        reviewers: {
+          defaults: [ 'dr-mario' ],
+          groups: {
+            'mario-brothers': [ 'mario', 'dr-mario', 'luigi' ],
+            'mario-alike': [ 'mario', 'dr-mario', 'wario' ],
+          },
+          per_author: {
+            luigi: [ 'mario', 'waluigi' ],
+          },
+        },
+      };
+      github.fetch_config.returns(config);
+
+      const pull_request = {
+        title: 'Nice Pull Request',
+        is_draft: false,
+        author: 'luigi',
+      };
+      github.get_pull_request.returns(pull_request);
+
+      const changed_fiels = [];
+      github.fetch_changed_files.returns(changed_fiels);
+
+      await run();
+
+      expect(github.assign_reviewers.calledOnce).to.be.true;
+      expect(github.assign_reviewers.lastCall.args[0]).to.have.members([ 'mario', 'waluigi' ]);
+    });
+
+    it('requests review based on reviwers per author when a group is used as an auther setting', async function() {
+      const config = {
+        reviewers: {
+          defaults: [ 'dr-mario' ],
+          groups: {
+            'mario-brothers': [ 'mario', 'dr-mario', 'luigi' ],
+            'mario-alike': [ 'mario', 'dr-mario', 'wario' ],
+          },
+          per_author: {
+            'mario-brothers': [ 'mario-brothers', 'waluigi' ],
+          },
+        },
+      };
+      github.fetch_config.returns(config);
+
+      const pull_request = {
+        title: 'Nice Pull Request',
+        is_draft: false,
+        author: 'luigi',
+      };
+      github.get_pull_request.returns(pull_request);
+
+      const changed_fiels = [];
+      github.fetch_changed_files.returns(changed_fiels);
+
+      await run();
+
+      expect(github.assign_reviewers.calledOnce).to.be.true;
+      expect(github.assign_reviewers.lastCall.args[0]).to.have.members([ 'mario', 'dr-mario', 'waluigi' ]);
+    });
   });
 });
