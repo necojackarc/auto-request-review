@@ -11846,7 +11846,7 @@ const github = __webpack_require__(790); // Don't destructure this object to stu
 
 const {
   fetch_other_group_members,
-  identify_reviewers,
+  identify_reviewers_by_changed_files,
   should_request_review,
   fetch_default_reviwers,
 } = __webpack_require__(909);
@@ -11877,7 +11877,7 @@ async function run() {
   const changed_files = await github.fetch_changed_files();
 
   core.info('Identifying reviewers based on the changed files and the configuration');
-  const reviewers_based_on_files = identify_reviewers({ config, changed_files, excludes: [ author ] });
+  const reviewers_based_on_files = identify_reviewers_by_changed_files({ config, changed_files, excludes: [ author ] });
 
   core.info('Adding other group membres to reviwers if group assignment feature is on');
   const reviwers_from_same_teams = fetch_other_group_members({ config, author });
@@ -13879,7 +13879,7 @@ function fetch_other_group_members({ author, config }) {
   return [ ...new Set(other_group_members) ];
 }
 
-function identify_reviewers({ config, changed_files, excludes = [] }) {
+function identify_reviewers_by_changed_files({ config, changed_files, excludes = [] }) {
   if (!config.files) {
     core.info('A "files" key does not exist in config; returning no reviwers for changed files.');
     return [];
@@ -13939,7 +13939,7 @@ function replace_groups_with_individuals({ reviewers, config }) {
 
 module.exports = {
   fetch_other_group_members,
-  identify_reviewers,
+  identify_reviewers_by_changed_files,
   should_request_review,
   fetch_default_reviwers,
 };

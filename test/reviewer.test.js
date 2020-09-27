@@ -2,7 +2,7 @@
 
 const {
   fetch_other_group_members,
-  identify_reviewers,
+  identify_reviewers_by_changed_files,
   should_request_review,
   fetch_default_reviwers,
 } = require('../src/reviewer');
@@ -66,7 +66,7 @@ describe('reviewer', function() {
     });
   });
 
-  describe('identify_reviewers()', function() {
+  describe('identify_reviewers_by_changed_files()', function() {
 
     const config = {
       reviewers: {
@@ -84,33 +84,33 @@ describe('reviewer', function() {
 
     it('returns nothing when config does not have a "files" key', function() {
       const changed_files = [ 'THIS DOES NOT MATTER' ];
-      expect(identify_reviewers({ config: {}, changed_files })).to.deep.equal([]);
+      expect(identify_reviewers_by_changed_files({ config: {}, changed_files })).to.deep.equal([]);
     });
 
     it('returns matching reviewers specified as indivisuals', function() {
       const changed_files = [ 'dir/super-star' ];
-      expect(identify_reviewers({ config, changed_files })).to.have.members([ 'mario', 'luigi' ]);
+      expect(identify_reviewers_by_changed_files({ config, changed_files })).to.have.members([ 'mario', 'luigi' ]);
     });
 
     it('returns matching reviewers specified as groups', function() {
       const changed_files = [ 'backend/path/to/file' ];
-      expect(identify_reviewers({ config, changed_files })).to.have.members([ 'mario', 'luigi', 'wario', 'waluigi' ]);
+      expect(identify_reviewers_by_changed_files({ config, changed_files })).to.have.members([ 'mario', 'luigi', 'wario', 'waluigi' ]);
     });
 
     it('works with a mix of groups and indivisuals', function() {
       const changed_files = [ 'frontend/path/to/file' ];
-      expect(identify_reviewers({ config, changed_files })).to.have.members([ 'princess-peach', 'toad' ]);
+      expect(identify_reviewers_by_changed_files({ config, changed_files })).to.have.members([ 'princess-peach', 'toad' ]);
     });
 
     it('dedupes matching reviewers', function() {
       const changed_files = [ 'super-star', 'frontend/file', 'backend/file' ];
-      expect(identify_reviewers({ config, changed_files })).to.have.members([ 'mario', 'luigi', 'wario', 'waluigi', 'princess-peach', 'toad' ]);
+      expect(identify_reviewers_by_changed_files({ config, changed_files })).to.have.members([ 'mario', 'luigi', 'wario', 'waluigi', 'princess-peach', 'toad' ]);
     });
 
     it('excludes specified reviwers in the "excludes" option', function() {
       const changed_files = [ 'super-star', 'frontend/file', 'backend/file' ];
       const excludes = [ 'wario', 'waluigi' ];
-      expect(identify_reviewers({ config, changed_files, excludes })).to.have.members([ 'mario', 'luigi', 'princess-peach', 'toad' ]);
+      expect(identify_reviewers_by_changed_files({ config, changed_files, excludes })).to.have.members([ 'mario', 'luigi', 'princess-peach', 'toad' ]);
     });
   });
 

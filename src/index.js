@@ -5,7 +5,7 @@ const github = require('./github'); // Don't destructure this object to stub wit
 
 const {
   fetch_other_group_members,
-  identify_reviewers,
+  identify_reviewers_by_changed_files,
   should_request_review,
   fetch_default_reviwers,
 } = require('./reviewer');
@@ -36,7 +36,7 @@ async function run() {
   const changed_files = await github.fetch_changed_files();
 
   core.info('Identifying reviewers based on the changed files and the configuration');
-  const reviewers_based_on_files = identify_reviewers({ config, changed_files, excludes: [ author ] });
+  const reviewers_based_on_files = identify_reviewers_by_changed_files({ config, changed_files, excludes: [ author ] });
 
   core.info('Adding other group membres to reviwers if group assignment feature is on');
   const reviwers_from_same_teams = fetch_other_group_members({ config, author });

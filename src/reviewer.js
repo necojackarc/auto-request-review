@@ -32,7 +32,7 @@ function fetch_other_group_members({ author, config }) {
   return [ ...new Set(other_group_members) ];
 }
 
-function identify_reviewers({ config, changed_files, excludes = [] }) {
+function identify_reviewers_by_changed_files({ config, changed_files, excludes = [] }) {
   if (!config.files) {
     core.info('A "files" key does not exist in config; returning no reviwers for changed files.');
     return [];
@@ -92,7 +92,7 @@ function replace_groups_with_individuals({ reviewers, config }) {
 
 module.exports = {
   fetch_other_group_members,
-  identify_reviewers,
+  identify_reviewers_by_changed_files,
   should_request_review,
   fetch_default_reviwers,
 };
