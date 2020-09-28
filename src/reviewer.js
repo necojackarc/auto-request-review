@@ -46,10 +46,10 @@ function identify_reviewers_by_changed_files({ config, changed_files, excludes =
     }
   });
 
-  const indivisuals = replace_groups_with_individuals({ reviewers: matching_reviewers, config });
+  const individuals = replace_groups_with_individuals({ reviewers: matching_reviewers, config });
 
   // Depue and filter the results
-  return [ ...new Set(indivisuals) ].filter((reviewer) => !excludes.includes(reviewer));
+  return [ ...new Set(individuals) ].filter((reviewer) => !excludes.includes(reviewer));
 }
 
 function identify_reviewers_by_author({ config, 'author': specified_author }) {
@@ -64,9 +64,9 @@ function identify_reviewers_by_author({ config, 'author': specified_author }) {
       return true;
     }
 
-    const indivisuals_in_author_setting = replace_groups_with_individuals({ reviewers: [ author ], config });
+    const individuals_in_author_setting = replace_groups_with_individuals({ reviewers: [ author ], config });
 
-    if (indivisuals_in_author_setting.includes(specified_author)) {
+    if (individuals_in_author_setting.includes(specified_author)) {
       return true;
     }
 
@@ -104,10 +104,10 @@ function fetch_default_reviwers({ config, excludes = [] }) {
     return [];
   }
 
-  const indivisuals = replace_groups_with_individuals({ reviewers: config.reviewers.defaults, config });
+  const individuals = replace_groups_with_individuals({ reviewers: config.reviewers.defaults, config });
 
   // Depue and filter the results
-  return [ ...new Set(indivisuals) ].filter((reviewer) => !excludes.includes(reviewer));
+  return [ ...new Set(individuals) ].filter((reviewer) => !excludes.includes(reviewer));
 }
 
 /* Private */

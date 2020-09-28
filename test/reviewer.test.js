@@ -88,7 +88,7 @@ describe('reviewer', function() {
       expect(identify_reviewers_by_changed_files({ config: {}, changed_files })).to.deep.equal([]);
     });
 
-    it('returns matching reviewers specified as indivisuals', function() {
+    it('returns matching reviewers specified as individuals', function() {
       const changed_files = [ 'dir/super-star' ];
       expect(identify_reviewers_by_changed_files({ config, changed_files })).to.have.members([ 'mario', 'luigi' ]);
     });
@@ -98,7 +98,7 @@ describe('reviewer', function() {
       expect(identify_reviewers_by_changed_files({ config, changed_files })).to.have.members([ 'mario', 'luigi', 'wario', 'waluigi' ]);
     });
 
-    it('works with a mix of groups and indivisuals', function() {
+    it('works with a mix of groups and individuals', function() {
       const changed_files = [ 'frontend/path/to/file' ];
       expect(identify_reviewers_by_changed_files({ config, changed_files })).to.have.members([ 'princess-peach', 'toad' ]);
     });

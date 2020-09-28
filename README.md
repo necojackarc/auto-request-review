@@ -11,7 +11,7 @@ It varies depending on the team who should review which pull requests. In some t
 This GitHub Action best suits any of the following needs:
 
 - You'd like to request review based on files changed
-- You'd like to specify reviwers per author
+- You'd like to specify reviewers per author
 - You'd like to get all of the other team members to review
 - You'd like to keep code owners real code owners, not just reviewers
 
@@ -24,7 +24,7 @@ Code owners own or are responsible for the code in their spaces while reviewers 
 This GitHub Action enables you to:
 
 - Auto-assign reviewers based on files changed
-- Auth-assign reviewers based on the author
+- Auto-assign reviewers based on the author
 - Auto-assign reviewers based on groups that the author belongs to
 - Auto-assign the default reviewers if no reviewers are matched to your rules
 - Request review only in certain conditions
@@ -38,7 +38,7 @@ files:
     - js-lovers
 ```
 
-### Auth-assign reviewers based on the author
+### Auto-assign reviewers based on the author
 You can specify reviewers per author.
 
 ```yaml
@@ -124,7 +124,7 @@ reviewers:
       - js-woman # username
 
   # Reviewers per author.
-  # Keys are reviewees, each of which has an array of reviwers.
+  # Keys are reviewees, each of which has an array of reviewers.
   per_author:
     engineers:
       - engineers # group
