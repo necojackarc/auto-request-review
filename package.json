@@ -13,7 +13,7 @@
   "author": "Taka <necojackarc@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.2.4",
+    "@actions/core": "^1.2.6",
     "@actions/github": "^4.0.0",
     "minimatch": "^3.0.4",
     "yaml": "^1.10.0"
