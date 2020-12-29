@@ -1,6 +1,7 @@
 'use strict';
 
 const core = require('@actions/core');
+const sampleSize = require('lodash/sampleSize');
 const github = require('./github'); // Don't destructure this object to stub with sinon in tests
 
 const {
@@ -45,7 +46,7 @@ async function run() {
   core.info('Adding other group membres to reviwers if group assignment feature is on');
   const reviwers_from_same_teams = fetch_other_group_members({ config, author });
 
-  const reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviewers_based_on_author, ...reviwers_from_same_teams ]) ];
+  let reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviewers_based_on_author, ...reviwers_from_same_teams ]) ];
 
   if (reviewers.length === 0) {
     core.info('Matched no reviwers');
@@ -58,6 +59,18 @@ async function run() {
 
     core.info('Falling back to the default reviwers');
     reviewers.push(...default_reviwers);
+  }
+
+  const DEFAULT_OPTIONS = {
+    numberOfReviewers: 0,
+  };
+  const { numberOfReviewers } = {
+    ...DEFAULT_OPTIONS,
+    ...config.options,
+  };
+
+  if (numberOfReviewers !== 0) {
+    reviewers = sampleSize(reviewers, numberOfReviewers);
   }
 
   core.info(`Requesting review to ${reviewers.join(', ')}`);
