@@ -1,7 +1,6 @@
 'use strict';
 
 const core = require('@actions/core');
-const sampleSize = require('lodash/sampleSize');
 const github = require('./github'); // Don't destructure this object to stub with sinon in tests
 
 const {
@@ -10,6 +9,7 @@ const {
   identify_reviewers_by_author,
   should_request_review,
   fetch_default_reviwers,
+  randomly_pick_reviewers,
 } = require('./reviewer');
 
 async function run() {
@@ -61,17 +61,8 @@ async function run() {
     reviewers.push(...default_reviwers);
   }
 
-  const DEFAULT_OPTIONS = {
-    numberOfReviewers: 0,
-  };
-  const { numberOfReviewers } = {
-    ...DEFAULT_OPTIONS,
-    ...config.options,
-  };
-
-  if (numberOfReviewers !== 0) {
-    reviewers = sampleSize(reviewers, numberOfReviewers);
-  }
+  core.info('Randomly picking reviewers if the number of reviewers is set');
+  reviewers = randomly_pick_reviewers({ reviewers, config });
 
   core.info(`Requesting review to ${reviewers.join(', ')}`);
   await github.assign_reviewers(reviewers);
