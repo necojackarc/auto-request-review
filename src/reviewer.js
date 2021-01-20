@@ -112,16 +112,11 @@ function fetch_default_reviwers({ config, excludes = [] }) {
 }
 
 function randomly_pick_reviewers({ reviewers, config }) {
-  const DEFAULT_OPTIONS = {
-    number_of_reviewers: 0,
-  };
-
   const { number_of_reviewers } = {
-    ...DEFAULT_OPTIONS,
     ...config.options,
   };
 
-  if (number_of_reviewers === 0) {
+  if (number_of_reviewers === undefined) {
     return reviewers;
   }
 

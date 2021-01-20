@@ -304,7 +304,7 @@ describe('reviewer', function() {
       expect(randomly_pick_reviewers({ reviewers, config })).to.deep.equal([ 'dr-mario', 'mario', 'luigi' ]);
     });
 
-    it('randommly pick reviewers up to the number of reviewers', function() {
+    it('randommly pick up to the number of reviewers', function() {
       const reviewers = [ 'dr-mario', 'mario', 'luigi' ];
       const config = {
         options: {

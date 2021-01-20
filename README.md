@@ -14,6 +14,7 @@ This GitHub Action best suits any of the following needs:
 - You'd like to specify reviewers per author
 - You'd like to get all of the other team members to review
 - You'd like to keep code owners real code owners, not just reviewers
+- You'd like to randomly pick reviewers based on the conditions mentioned above
 
 Overall, if you'd like to request review to a certain set of members based on groups and/or files changed, this GitHub Action works best.
 
@@ -27,6 +28,7 @@ This GitHub Action enables you to:
 - Auto-assign reviewers based on the author
 - Auto-assign reviewers based on groups that the author belongs to
 - Auto-assign the default reviewers if no reviewers are matched to your rules
+- Randomly pick reviewers from matching reviewers
 - Request review only in certain conditions
 
 ###  Auto-assign reviewers based on files changed
@@ -79,6 +81,14 @@ You can define the default reviewers who will be assigned when no reviewers are 
 reviewers:
   default:
     - repository-owners
+```
+
+### Randomly pick reviewers from matching reviewers
+You can randomly assign reviewers out of those who meet the conditions you set (e.g. file changes, groups, etc.).
+
+```yaml
+options:
+  number_of_reviewers: 3
 ```
 
 ### Request review only in certain conditions
@@ -158,8 +168,9 @@ options:
     - DO NOT REVIEW
   enable_group_assignment: false
 
-  # Set 0 to add all the reviewers (default: 0)
-  number_of_reviewers: 0
+  # Randomly pick reviewers up to this number.
+  # Do not set this option if you'd like to assign all matching reviewers.
+  number_of_reviewers: 3
 ```
 
 The default configuration file location is `.github/auto_request_review.yml` but you can override it in your workflow configuration file.
