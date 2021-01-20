@@ -268,11 +268,11 @@ describe('index', function() {
       const config = {
         reviewers: {
           per_author: {
-            luigi: [ 'mario', 'waluigi' ],
+            luigi: [ 'dr-mario', 'mario', 'waluigi' ],
           },
         },
         options: {
-          numberOfReviewers: 1,
+          numberOfReviewers: 2,
         },
       };
       github.fetch_config.returns(config);
@@ -290,7 +290,10 @@ describe('index', function() {
       await run();
 
       expect(github.assign_reviewers.calledOnce).to.be.true;
-      expect(github.assign_reviewers.lastCall.args[0].length).to.equal(1);
+
+      const randomly_picked_reviewers = github.assign_reviewers.lastCall.args[0];
+      expect([ 'dr-mario', 'mario', 'waluigi' ]).to.include.members(randomly_picked_reviewers);
+      expect(new Set(randomly_picked_reviewers)).to.have.lengthOf(2);
     });
   });
 });

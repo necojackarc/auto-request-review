@@ -6,6 +6,7 @@ const {
   identify_reviewers_by_author,
   should_request_review,
   fetch_default_reviwers,
+  randomly_pick_reviewers,
 } = require('../src/reviewer');
 const { expect } = require('chai');
 
@@ -293,6 +294,27 @@ describe('reviewer', function() {
         },
       };
       expect(fetch_default_reviwers({ config, excludes: [ 'luigi' ] })).to.have.members([ 'dr-mario', 'mario' ]);
+    });
+  });
+
+  describe('randomly_pick_reviewers()', function() {
+    it('returns all reviewers as-is if the number of reviewers is not set', function() {
+      const reviewers = [ 'dr-mario', 'mario', 'luigi' ];
+      const config = {};
+      expect(randomly_pick_reviewers({ reviewers, config })).to.deep.equal([ 'dr-mario', 'mario', 'luigi' ]);
+    });
+
+    it('randommly pick reviewers up to the number of reviewers', function() {
+      const reviewers = [ 'dr-mario', 'mario', 'luigi' ];
+      const config = {
+        options: {
+          numberOfReviewers: 2,
+        },
+      };
+
+      const randomly_picked_reviewers = randomly_pick_reviewers({ reviewers, config });
+      expect([ 'dr-mario', 'mario', 'luigi' ]).to.include.members(randomly_picked_reviewers);
+      expect(new Set(randomly_picked_reviewers)).to.have.lengthOf(2);
     });
   });
 });
