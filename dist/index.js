@@ -2014,63 +2014,6 @@ exports.parse = parse;
 
 /***/ }),
 
-/***/ 68:
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-async function auth(token) {
-  const tokenType = token.split(/\./).length === 3 ? "app" : /^v\d+\./.test(token) ? "installation" : "oauth";
-  return {
-    type: "token",
-    token: token,
-    tokenType
-  };
-}
-
-/**
- * Prefix token for usage in the Authorization header
- *
- * @param token OAuth token or JSON Web Token
- */
-function withAuthorizationPrefix(token) {
-  if (token.split(/\./).length === 3) {
-    return `bearer ${token}`;
-  }
-
-  return `token ${token}`;
-}
-
-async function hook(token, request, route, parameters) {
-  const endpoint = request.endpoint.merge(route, parameters);
-  endpoint.headers.authorization = withAuthorizationPrefix(token);
-  return request(endpoint);
-}
-
-const createTokenAuth = function createTokenAuth(token) {
-  if (!token) {
-    throw new Error("[@octokit/auth-token] No token passed to createTokenAuth");
-  }
-
-  if (typeof token !== "string") {
-    throw new Error("[@octokit/auth-token] Token passed to createTokenAuth is not a string");
-  }
-
-  token = token.replace(/^(token|bearer) +/i, "");
-  return Object.assign(auth.bind(null, token), {
-    hook: hook.bind(null, token)
-  });
-};
-
-exports.createTokenAuth = createTokenAuth;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-
 /***/ 82:
 /***/ (function(__unusedmodule, exports) {
 
@@ -4388,6 +4331,79 @@ function baseUnary(func) {
 }
 
 module.exports = baseUnary;
+
+
+/***/ }),
+
+/***/ 234:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+var isObject = __webpack_require__(988),
+    isSymbol = __webpack_require__(186);
+
+/** Used as references for various `Number` constants. */
+var NAN = 0 / 0;
+
+/** Used to match leading and trailing whitespace. */
+var reTrim = /^\s+|\s+$/g;
+
+/** Used to detect bad signed hexadecimal string values. */
+var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+
+/** Used to detect binary string values. */
+var reIsBinary = /^0b[01]+$/i;
+
+/** Used to detect octal string values. */
+var reIsOctal = /^0o[0-7]+$/i;
+
+/** Built-in method references without a dependency on `root`. */
+var freeParseInt = parseInt;
+
+/**
+ * Converts `value` to a number.
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to process.
+ * @returns {number} Returns the number.
+ * @example
+ *
+ * _.toNumber(3.2);
+ * // => 3.2
+ *
+ * _.toNumber(Number.MIN_VALUE);
+ * // => 5e-324
+ *
+ * _.toNumber(Infinity);
+ * // => Infinity
+ *
+ * _.toNumber('3.2');
+ * // => 3.2
+ */
+function toNumber(value) {
+  if (typeof value == 'number') {
+    return value;
+  }
+  if (isSymbol(value)) {
+    return NAN;
+  }
+  if (isObject(value)) {
+    var other = typeof value.valueOf == 'function' ? value.valueOf() : value;
+    value = isObject(other) ? (other + '') : other;
+  }
+  if (typeof value != 'string') {
+    return value === 0 ? value : +value;
+  }
+  value = value.replace(reTrim, '');
+  var isBinary = reIsBinary.test(value);
+  return (isBinary || reIsOctal.test(value))
+    ? freeParseInt(value.slice(2), isBinary ? 2 : 8)
+    : (reIsBadHex.test(value) ? NAN : +value);
+}
+
+module.exports = toNumber;
 
 
 /***/ }),
@@ -7626,7 +7642,7 @@ var arraySampleSize = __webpack_require__(301),
     baseSampleSize = __webpack_require__(875),
     isArray = __webpack_require__(143),
     isIterateeCall = __webpack_require__(663),
-    toInteger = __webpack_require__(813);
+    toInteger = __webpack_require__(528);
 
 /**
  * Gets `n` random elements at unique keys from `collection` up to the
@@ -7836,7 +7852,7 @@ var universalUserAgent = __webpack_require__(796);
 var beforeAfterHook = __webpack_require__(523);
 var request = __webpack_require__(753);
 var graphql = __webpack_require__(898);
-var authToken = __webpack_require__(68);
+var authToken = __webpack_require__(813);
 
 function _defineProperty(obj, key, value) {
   if (key in obj) {
@@ -11689,6 +11705,49 @@ exports.Schema = Schema;
 
 /***/ }),
 
+/***/ 528:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+var toFinite = __webpack_require__(933);
+
+/**
+ * Converts `value` to an integer.
+ *
+ * **Note:** This method is loosely based on
+ * [`ToInteger`](http://www.ecma-international.org/ecma-262/7.0/#sec-tointeger).
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to convert.
+ * @returns {number} Returns the converted integer.
+ * @example
+ *
+ * _.toInteger(3.2);
+ * // => 3
+ *
+ * _.toInteger(Number.MIN_VALUE);
+ * // => 0
+ *
+ * _.toInteger(Infinity);
+ * // => 1.7976931348623157e+308
+ *
+ * _.toInteger('3.2');
+ * // => 3
+ */
+function toInteger(value) {
+  var result = toFinite(value),
+      remainder = result % 1;
+
+  return result === result ? (remainder ? result - remainder : result) : 0;
+}
+
+module.exports = toInteger;
+
+
+/***/ }),
+
 /***/ 539:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -12297,146 +12356,6 @@ function baseTimes(n, iteratee) {
 }
 
 module.exports = baseTimes;
-
-
-/***/ }),
-
-/***/ 555:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const core = __webpack_require__(470);
-const github = __webpack_require__(469);
-const yaml = __webpack_require__(596);
-
-class PullRequest {
-  // ref: https://developer.github.com/v3/pulls/#get-a-pull-request
-  constructor(pull_request_paylaod) {
-    // "ncc" doesn't yet support private class fields as of 29 Aug. 2020
-    // ref: https://github.com/vercel/ncc/issues/499
-    this._pull_request_paylaod = pull_request_paylaod;
-  }
-
-  get author() {
-    return this._pull_request_paylaod.user.login;
-  }
-
-  get title() {
-    return this._pull_request_paylaod.title;
-  }
-
-  get is_draft() {
-    return this._pull_request_paylaod.draft;
-  }
-}
-
-function get_pull_request() {
-  const context = get_context();
-
-  return new PullRequest(context.payload.pull_request);
-}
-
-async function fetch_config() {
-  const context = get_context();
-  const octokit = get_octokit();
-  const config_path = get_config_path();
-
-  const { data: response_body } = await octokit.repos.getContent({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    path: config_path,
-    ref: context.payload.pull_request.base.ref, // base branch name the branch is going into
-  });
-
-  const content = Buffer.from(response_body.content, response_body.encoding).toString();
-  return yaml.parse(content);
-}
-
-async function fetch_changed_files() {
-  const context = get_context();
-  const octokit = get_octokit();
-
-  const changed_files = [];
-
-  const per_page = 100;
-  let page = 0;
-  let number_of_files_in_current_page;
-
-  do {
-    page += 1;
-
-    const { data: response_body } = await octokit.pulls.listFiles({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      pull_number: context.payload.pull_request.number,
-      page,
-      per_page,
-    });
-
-    number_of_files_in_current_page = response_body.length;
-    changed_files.push(...response_body.map((file) => file.filename));
-
-  } while (number_of_files_in_current_page === per_page);
-
-  return changed_files;
-}
-
-async function assign_reviewers(reviewers) {
-  const context = get_context();
-  const octokit = get_octokit();
-
-  return octokit.pulls.requestReviewers({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    pull_number: context.payload.pull_request.number,
-    reviewers,
-  });
-}
-
-/* Private */
-
-let context_cache;
-let token_cache;
-let config_path_cache;
-let octokit_cache;
-
-function get_context() {
-  return context_cache || (context_cache = github.context);
-}
-
-function get_token() {
-  return token_cache || (token_cache = core.getInput('token'));
-}
-
-function get_config_path() {
-  return config_path_cache || (config_path_cache = core.getInput('config'));
-}
-
-function get_octokit() {
-  if (octokit_cache) {
-    return octokit_cache;
-  }
-
-  const token = get_token();
-  return octokit_cache = github.getOctokit(token);
-}
-
-function clear_cache() {
-  context_cache = undefined;
-  token_cache = undefined;
-  config_path_cache = undefined;
-  octokit_cache = undefined;
-}
-
-module.exports = {
-  get_pull_request,
-  fetch_config,
-  fetch_changed_files,
-  assign_reviewers,
-  clear_cache,
-};
 
 
 /***/ }),
@@ -13128,8 +13047,7 @@ module.exports = require("util");
 
 
 const core = __webpack_require__(470);
-const sampleSize = __webpack_require__(398);
-const github = __webpack_require__(555); // Don't destructure this object to stub with sinon in tests
+const github = __webpack_require__(790); // Don't destructure this object to stub with sinon in tests
 
 const {
   fetch_other_group_members,
@@ -13137,6 +13055,7 @@ const {
   identify_reviewers_by_author,
   should_request_review,
   fetch_default_reviwers,
+  randomly_pick_reviewers,
 } = __webpack_require__(909);
 
 async function run() {
@@ -13188,17 +13107,8 @@ async function run() {
     reviewers.push(...default_reviwers);
   }
 
-  const DEFAULT_OPTIONS = {
-    numberOfReviewers: 0,
-  };
-  const { numberOfReviewers } = {
-    ...DEFAULT_OPTIONS,
-    ...config.options,
-  };
-
-  if (numberOfReviewers !== 0) {
-    reviewers = sampleSize(reviewers, numberOfReviewers);
-  }
+  core.info('Randomly picking reviewers if the number of reviewers is set');
+  reviewers = randomly_pick_reviewers({ reviewers, config });
 
   core.info(`Requesting review to ${reviewers.join(', ')}`);
   await github.assign_reviewers(reviewers);
@@ -13537,72 +13447,139 @@ module.exports = shuffleSelf;
 /***/ 790:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-var isObject = __webpack_require__(988),
-    isSymbol = __webpack_require__(186);
+"use strict";
 
-/** Used as references for various `Number` constants. */
-var NAN = 0 / 0;
 
-/** Used to match leading and trailing whitespace. */
-var reTrim = /^\s+|\s+$/g;
+const core = __webpack_require__(470);
+const github = __webpack_require__(469);
+const yaml = __webpack_require__(596);
 
-/** Used to detect bad signed hexadecimal string values. */
-var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
-
-/** Used to detect binary string values. */
-var reIsBinary = /^0b[01]+$/i;
-
-/** Used to detect octal string values. */
-var reIsOctal = /^0o[0-7]+$/i;
-
-/** Built-in method references without a dependency on `root`. */
-var freeParseInt = parseInt;
-
-/**
- * Converts `value` to a number.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to process.
- * @returns {number} Returns the number.
- * @example
- *
- * _.toNumber(3.2);
- * // => 3.2
- *
- * _.toNumber(Number.MIN_VALUE);
- * // => 5e-324
- *
- * _.toNumber(Infinity);
- * // => Infinity
- *
- * _.toNumber('3.2');
- * // => 3.2
- */
-function toNumber(value) {
-  if (typeof value == 'number') {
-    return value;
+class PullRequest {
+  // ref: https://developer.github.com/v3/pulls/#get-a-pull-request
+  constructor(pull_request_paylaod) {
+    // "ncc" doesn't yet support private class fields as of 29 Aug. 2020
+    // ref: https://github.com/vercel/ncc/issues/499
+    this._pull_request_paylaod = pull_request_paylaod;
   }
-  if (isSymbol(value)) {
-    return NAN;
+
+  get author() {
+    return this._pull_request_paylaod.user.login;
   }
-  if (isObject(value)) {
-    var other = typeof value.valueOf == 'function' ? value.valueOf() : value;
-    value = isObject(other) ? (other + '') : other;
+
+  get title() {
+    return this._pull_request_paylaod.title;
   }
-  if (typeof value != 'string') {
-    return value === 0 ? value : +value;
+
+  get is_draft() {
+    return this._pull_request_paylaod.draft;
   }
-  value = value.replace(reTrim, '');
-  var isBinary = reIsBinary.test(value);
-  return (isBinary || reIsOctal.test(value))
-    ? freeParseInt(value.slice(2), isBinary ? 2 : 8)
-    : (reIsBadHex.test(value) ? NAN : +value);
 }
 
-module.exports = toNumber;
+function get_pull_request() {
+  const context = get_context();
+
+  return new PullRequest(context.payload.pull_request);
+}
+
+async function fetch_config() {
+  const context = get_context();
+  const octokit = get_octokit();
+  const config_path = get_config_path();
+
+  const { data: response_body } = await octokit.repos.getContent({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    path: config_path,
+    ref: context.payload.pull_request.base.ref, // base branch name the branch is going into
+  });
+
+  const content = Buffer.from(response_body.content, response_body.encoding).toString();
+  return yaml.parse(content);
+}
+
+async function fetch_changed_files() {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  const changed_files = [];
+
+  const per_page = 100;
+  let page = 0;
+  let number_of_files_in_current_page;
+
+  do {
+    page += 1;
+
+    const { data: response_body } = await octokit.pulls.listFiles({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+      page,
+      per_page,
+    });
+
+    number_of_files_in_current_page = response_body.length;
+    changed_files.push(...response_body.map((file) => file.filename));
+
+  } while (number_of_files_in_current_page === per_page);
+
+  return changed_files;
+}
+
+async function assign_reviewers(reviewers) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  return octokit.pulls.requestReviewers({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: context.payload.pull_request.number,
+    reviewers,
+  });
+}
+
+/* Private */
+
+let context_cache;
+let token_cache;
+let config_path_cache;
+let octokit_cache;
+
+function get_context() {
+  return context_cache || (context_cache = github.context);
+}
+
+function get_token() {
+  return token_cache || (token_cache = core.getInput('token'));
+}
+
+function get_config_path() {
+  return config_path_cache || (config_path_cache = core.getInput('config'));
+}
+
+function get_octokit() {
+  if (octokit_cache) {
+    return octokit_cache;
+  }
+
+  const token = get_token();
+  return octokit_cache = github.getOctokit(token);
+}
+
+function clear_cache() {
+  context_cache = undefined;
+  token_cache = undefined;
+  config_path_cache = undefined;
+  octokit_cache = undefined;
+}
+
+module.exports = {
+  get_pull_request,
+  fetch_config,
+  fetch_changed_files,
+  assign_reviewers,
+  clear_cache,
+};
 
 
 /***/ }),
@@ -13728,44 +13705,58 @@ exports.getUserAgent = getUserAgent;
 /***/ }),
 
 /***/ 813:
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/***/ (function(__unusedmodule, exports) {
 
-var toFinite = __webpack_require__(933);
+"use strict";
 
-/**
- * Converts `value` to an integer.
- *
- * **Note:** This method is loosely based on
- * [`ToInteger`](http://www.ecma-international.org/ecma-262/7.0/#sec-tointeger).
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to convert.
- * @returns {number} Returns the converted integer.
- * @example
- *
- * _.toInteger(3.2);
- * // => 3
- *
- * _.toInteger(Number.MIN_VALUE);
- * // => 0
- *
- * _.toInteger(Infinity);
- * // => 1.7976931348623157e+308
- *
- * _.toInteger('3.2');
- * // => 3
- */
-function toInteger(value) {
-  var result = toFinite(value),
-      remainder = result % 1;
 
-  return result === result ? (remainder ? result - remainder : result) : 0;
+Object.defineProperty(exports, '__esModule', { value: true });
+
+async function auth(token) {
+  const tokenType = token.split(/\./).length === 3 ? "app" : /^v\d+\./.test(token) ? "installation" : "oauth";
+  return {
+    type: "token",
+    token: token,
+    tokenType
+  };
 }
 
-module.exports = toInteger;
+/**
+ * Prefix token for usage in the Authorization header
+ *
+ * @param token OAuth token or JSON Web Token
+ */
+function withAuthorizationPrefix(token) {
+  if (token.split(/\./).length === 3) {
+    return `bearer ${token}`;
+  }
+
+  return `token ${token}`;
+}
+
+async function hook(token, request, route, parameters) {
+  const endpoint = request.endpoint.merge(route, parameters);
+  endpoint.headers.authorization = withAuthorizationPrefix(token);
+  return request(endpoint);
+}
+
+const createTokenAuth = function createTokenAuth(token) {
+  if (!token) {
+    throw new Error("[@octokit/auth-token] No token passed to createTokenAuth");
+  }
+
+  if (typeof token !== "string") {
+    throw new Error("[@octokit/auth-token] Token passed to createTokenAuth is not a string");
+  }
+
+  token = token.replace(/^(token|bearer) +/i, "");
+  return Object.assign(auth.bind(null, token), {
+    hook: hook.bind(null, token)
+  });
+};
+
+exports.createTokenAuth = createTokenAuth;
+//# sourceMappingURL=index.js.map
 
 
 /***/ }),
@@ -15320,6 +15311,7 @@ module.exports = baseClamp;
 
 const core = __webpack_require__(470);
 const minimatch = __webpack_require__(93);
+const sampleSize = __webpack_require__(398);
 
 function fetch_other_group_members({ author, config }) {
   const DEFAULT_OPTIONS = {
@@ -15428,6 +15420,18 @@ function fetch_default_reviwers({ config, excludes = [] }) {
   return [ ...new Set(individuals) ].filter((reviewer) => !excludes.includes(reviewer));
 }
 
+function randomly_pick_reviewers({ reviewers, config }) {
+  const { number_of_reviewers } = {
+    ...config.options,
+  };
+
+  if (number_of_reviewers === undefined) {
+    return reviewers;
+  }
+
+  return sampleSize(reviewers, number_of_reviewers);
+}
+
 /* Private */
 
 function replace_groups_with_individuals({ reviewers, config }) {
@@ -15443,6 +15447,7 @@ module.exports = {
   identify_reviewers_by_author,
   should_request_review,
   fetch_default_reviwers,
+  randomly_pick_reviewers,
 };
 
 
@@ -15451,7 +15456,7 @@ module.exports = {
 /***/ 933:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-var toNumber = __webpack_require__(790);
+var toNumber = __webpack_require__(234);
 
 /** Used as references for various `Number` constants. */
 var INFINITY = 1 / 0,
