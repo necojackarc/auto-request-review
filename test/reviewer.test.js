@@ -308,7 +308,7 @@ describe('reviewer', function() {
       const reviewers = [ 'dr-mario', 'mario', 'luigi' ];
       const config = {
         options: {
-          numberOfReviewers: 2,
+          number_of_reviewers: 2,
         },
       };
 

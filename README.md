@@ -159,7 +159,7 @@ options:
   enable_group_assignment: false
 
   # Set 0 to add all the reviewers (default: 0)
-  numberOfReviewers: 0
+  number_of_reviewers: 0
 ```
 
 The default configuration file location is `.github/auto_request_review.yml` but you can override it in your workflow configuration file.

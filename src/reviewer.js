@@ -113,19 +113,19 @@ function fetch_default_reviwers({ config, excludes = [] }) {
 
 function randomly_pick_reviewers({ reviewers, config }) {
   const DEFAULT_OPTIONS = {
-    numberOfReviewers: 0,
+    number_of_reviewers: 0,
   };
 
-  const { numberOfReviewers } = {
+  const { number_of_reviewers } = {
     ...DEFAULT_OPTIONS,
     ...config.options,
   };
 
-  if (numberOfReviewers === 0) {
+  if (number_of_reviewers === 0) {
     return reviewers;
   }
 
-  return sampleSize(reviewers, numberOfReviewers);
+  return sampleSize(reviewers, number_of_reviewers);
 }
 
 /* Private */

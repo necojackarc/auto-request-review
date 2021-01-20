@@ -264,7 +264,7 @@ describe('index', function() {
       expect(github.assign_reviewers.lastCall.args[0]).to.have.members([ 'mario', 'dr-mario', 'waluigi' ]);
     });
 
-    it('limits the number of reviewers based on numberOfReviewers setting', async function() {
+    it('limits the number of reviewers based on number_of_reviewers setting', async function() {
       const config = {
         reviewers: {
           per_author: {
@@ -272,7 +272,7 @@ describe('index', function() {
           },
         },
         options: {
-          numberOfReviewers: 2,
+          number_of_reviewers: 2,
         },
       };
       github.fetch_config.returns(config);
