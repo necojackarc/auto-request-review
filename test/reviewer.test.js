@@ -298,10 +298,10 @@ describe('reviewer', function() {
   });
 
   describe('randomly_pick_reviewers()', function() {
-    it('returns all reviewers as-is if the number of reviewers is not set', function() {
+    it('returns all reviewers if the number of reviewers is not set', function() {
       const reviewers = [ 'dr-mario', 'mario', 'luigi' ];
       const config = {};
-      expect(randomly_pick_reviewers({ reviewers, config })).to.deep.equal([ 'dr-mario', 'mario', 'luigi' ]);
+      expect(randomly_pick_reviewers({ reviewers, config })).to.have.members([ 'dr-mario', 'mario', 'luigi' ]);
     });
 
     it('randommly pick up to the number of reviewers', function() {
@@ -315,6 +315,16 @@ describe('reviewer', function() {
       const randomly_picked_reviewers = randomly_pick_reviewers({ reviewers, config });
       expect([ 'dr-mario', 'mario', 'luigi' ]).to.include.members(randomly_picked_reviewers);
       expect(new Set(randomly_picked_reviewers)).to.have.lengthOf(2);
+    });
+
+    it('returns all reviewers if the number of reviewers is greater than or equal to the given reviewers', function() {
+      const reviewers = [ 'dr-mario', 'mario', 'luigi' ];
+      const config = {
+        options: {
+          number_of_reviewers: 4,
+        },
+      };
+      expect(randomly_pick_reviewers({ reviewers, config })).to.have.members([ 'dr-mario', 'mario', 'luigi' ]);
     });
   });
 });
