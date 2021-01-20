@@ -9,6 +9,7 @@ const {
   identify_reviewers_by_author,
   should_request_review,
   fetch_default_reviwers,
+  randomly_pick_reviewers,
 } = require('./reviewer');
 
 async function run() {
@@ -45,7 +46,7 @@ async function run() {
   core.info('Adding other group membres to reviwers if group assignment feature is on');
   const reviwers_from_same_teams = fetch_other_group_members({ config, author });
 
-  const reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviewers_based_on_author, ...reviwers_from_same_teams ]) ];
+  let reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviewers_based_on_author, ...reviwers_from_same_teams ]) ];
 
   if (reviewers.length === 0) {
     core.info('Matched no reviwers');
@@ -59,6 +60,9 @@ async function run() {
     core.info('Falling back to the default reviwers');
     reviewers.push(...default_reviwers);
   }
+
+  core.info('Randomly picking reviewers if the number of reviewers is set');
+  reviewers = randomly_pick_reviewers({ reviewers, config });
 
   core.info(`Requesting review to ${reviewers.join(', ')}`);
   await github.assign_reviewers(reviewers);

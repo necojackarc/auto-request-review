@@ -263,5 +263,37 @@ describe('index', function() {
       expect(github.assign_reviewers.calledOnce).to.be.true;
       expect(github.assign_reviewers.lastCall.args[0]).to.have.members([ 'mario', 'dr-mario', 'waluigi' ]);
     });
+
+    it('limits the number of reviewers based on number_of_reviewers setting', async function() {
+      const config = {
+        reviewers: {
+          per_author: {
+            luigi: [ 'dr-mario', 'mario', 'waluigi' ],
+          },
+        },
+        options: {
+          number_of_reviewers: 2,
+        },
+      };
+      github.fetch_config.returns(config);
+
+      const pull_request = {
+        title: 'Nice Pull Request',
+        is_draft: false,
+        author: 'luigi',
+      };
+      github.get_pull_request.returns(pull_request);
+
+      const changed_fiels = [];
+      github.fetch_changed_files.returns(changed_fiels);
+
+      await run();
+
+      expect(github.assign_reviewers.calledOnce).to.be.true;
+
+      const randomly_picked_reviewers = github.assign_reviewers.lastCall.args[0];
+      expect([ 'dr-mario', 'mario', 'waluigi' ]).to.include.members(randomly_picked_reviewers);
+      expect(new Set(randomly_picked_reviewers)).to.have.lengthOf(2);
+    });
   });
 });

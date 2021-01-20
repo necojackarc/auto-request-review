@@ -1,6 +1,6 @@
 {
   "name": "auto-request-review",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "GitHub Action that automatically requests review of a pull request based on files changed",
   "main": "index.js",
   "scripts": {
@@ -15,6 +15,7 @@
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@actions/github": "^4.0.0",
+    "lodash": "^4.17.20",
     "minimatch": "^3.0.4",
     "yaml": "^1.10.0"
   },

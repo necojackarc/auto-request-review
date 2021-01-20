@@ -2,6 +2,7 @@
 
 const core = require('@actions/core');
 const minimatch = require('minimatch');
+const sampleSize = require('lodash/sampleSize');
 
 function fetch_other_group_members({ author, config }) {
   const DEFAULT_OPTIONS = {
@@ -110,6 +111,18 @@ function fetch_default_reviwers({ config, excludes = [] }) {
   return [ ...new Set(individuals) ].filter((reviewer) => !excludes.includes(reviewer));
 }
 
+function randomly_pick_reviewers({ reviewers, config }) {
+  const { number_of_reviewers } = {
+    ...config.options,
+  };
+
+  if (number_of_reviewers === undefined) {
+    return reviewers;
+  }
+
+  return sampleSize(reviewers, number_of_reviewers);
+}
+
 /* Private */
 
 function replace_groups_with_individuals({ reviewers, config }) {
@@ -125,4 +138,5 @@ module.exports = {
   identify_reviewers_by_author,
   should_request_review,
   fetch_default_reviwers,
+  randomly_pick_reviewers,
 };
