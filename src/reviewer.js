@@ -35,7 +35,7 @@ function fetch_other_group_members({ author, config }) {
 
 function identify_reviewers_by_changed_files({ config, changed_files, excludes = [] }) {
   if (!config.files) {
-    core.info('A "files" key does not exist in config; returning no reviwers for changed files.');
+    core.info('A "files" key does not exist in config; returning no reviewers for changed files.');
     return [];
   }
 
@@ -55,7 +55,7 @@ function identify_reviewers_by_changed_files({ config, changed_files, excludes =
 
 function identify_reviewers_by_author({ config, 'author': specified_author }) {
   if (!(config.reviewers && config.reviewers.per_author)) {
-    core.info('"per_author" is not set; returning no reviwers for the author.');
+    core.info('"per_author" is not set; returning no reviewers for the author.');
     return [];
   }
 
@@ -100,7 +100,7 @@ function should_request_review({ title, is_draft, config }) {
   return !ignored_keywords.some((keyword) => title.includes(keyword));
 }
 
-function fetch_default_reviwers({ config, excludes = [] }) {
+function fetch_default_reviewers({ config, excludes = [] }) {
   if (!config.reviewers || !Array.isArray(config.reviewers.defaults)) {
     return [];
   }
@@ -137,6 +137,6 @@ module.exports = {
   identify_reviewers_by_changed_files,
   identify_reviewers_by_author,
   should_request_review,
-  fetch_default_reviwers,
+  fetch_default_reviewers,
   randomly_pick_reviewers,
 };

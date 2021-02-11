@@ -142,7 +142,7 @@ describe('index', function() {
       expect(github.assign_reviewers.calledOnce).to.be.false;
     });
 
-    it('does not request review if no reviwers are matched and default reviweres are not set', async function() {
+    it('does not request review if no reviewers are matched and default reviweres are not set', async function() {
       const config = {
         reviewers: {
           groups: {
@@ -171,7 +171,7 @@ describe('index', function() {
       expect(github.assign_reviewers.calledOnce).to.be.false;
     });
 
-    it('requests review to the default reviwers if no reviwers are matched', async function() {
+    it('requests review to the default reviewers if no reviewers are matched', async function() {
       const config = {
         reviewers: {
           defaults: [ 'dr-mario', 'mario-brothers' ],
@@ -202,7 +202,7 @@ describe('index', function() {
       expect(github.assign_reviewers.lastCall.args[0]).to.have.members([ 'dr-mario', 'mario' ]);
     });
 
-    it('requests review based on reviwers per author', async function() {
+    it('requests review based on reviewers per author', async function() {
       const config = {
         reviewers: {
           defaults: [ 'dr-mario' ],
@@ -233,7 +233,7 @@ describe('index', function() {
       expect(github.assign_reviewers.lastCall.args[0]).to.have.members([ 'mario', 'waluigi' ]);
     });
 
-    it('requests review based on reviwers per author when a group is used as an auther setting', async function() {
+    it('requests review based on reviewers per author when a group is used as an auther setting', async function() {
       const config = {
         reviewers: {
           defaults: [ 'dr-mario' ],
