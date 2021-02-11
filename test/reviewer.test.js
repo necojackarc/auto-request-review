@@ -5,7 +5,7 @@ const {
   identify_reviewers_by_changed_files,
   identify_reviewers_by_author,
   should_request_review,
-  fetch_default_reviwers,
+  fetch_default_reviewers,
   randomly_pick_reviewers,
 } = require('../src/reviewer');
 const { expect } = require('chai');
@@ -109,7 +109,7 @@ describe('reviewer', function() {
       expect(identify_reviewers_by_changed_files({ config, changed_files })).to.have.members([ 'mario', 'luigi', 'wario', 'waluigi', 'princess-peach', 'toad' ]);
     });
 
-    it('excludes specified reviwers in the "excludes" option', function() {
+    it('excludes specified reviewers in the "excludes" option', function() {
       const changed_files = [ 'super-star', 'frontend/file', 'backend/file' ];
       const excludes = [ 'wario', 'waluigi' ];
       expect(identify_reviewers_by_changed_files({ config, changed_files, excludes })).to.have.members([ 'mario', 'luigi', 'princess-peach', 'toad' ]);
@@ -133,7 +133,7 @@ describe('reviewer', function() {
 
     it('returns nothing when config does not have a "per-author" key', function() {
       const author = 'THIS DOES NOT MATTER';
-      expect(identify_reviewers_by_author({ config: { reviwers: {} }, author })).to.deep.equal([]);
+      expect(identify_reviewers_by_author({ config: { reviewers: {} }, author })).to.deep.equal([]);
     });
 
     it('returns nothing when the author does not exist in the "per-author" settings', function() {
@@ -141,7 +141,7 @@ describe('reviewer', function() {
       expect(identify_reviewers_by_author({ config, author })).to.deep.equal([]);
     });
 
-    it('returns the reviwers for the author', function() {
+    it('returns the reviewers for the author', function() {
       const author = 'yoshi';
       expect(identify_reviewers_by_author({ config, author })).to.have.members([ 'mario', 'luige' ]);
     });
@@ -271,8 +271,8 @@ describe('reviewer', function() {
     });
   });
 
-  describe('fetch_default_reviwers()', function() {
-    it('fetches the default reviwers', function() {
+  describe('fetch_default_reviewers()', function() {
+    it('fetches the default reviewers', function() {
       const config = {
         reviewers: {
           defaults: [ 'dr-mario', 'mario-brothers' ],
@@ -281,10 +281,10 @@ describe('reviewer', function() {
           },
         },
       };
-      expect(fetch_default_reviwers({ config })).to.have.members([ 'dr-mario', 'mario', 'luigi' ]);
+      expect(fetch_default_reviewers({ config })).to.have.members([ 'dr-mario', 'mario', 'luigi' ]);
     });
 
-    it('fetches the default reviwers exluding specified ones in the excludes option', function() {
+    it('fetches the default reviewers exluding specified ones in the excludes option', function() {
       const config = {
         reviewers: {
           defaults: [ 'dr-mario', 'mario-brothers' ],
@@ -293,7 +293,7 @@ describe('reviewer', function() {
           },
         },
       };
-      expect(fetch_default_reviwers({ config, excludes: [ 'luigi' ] })).to.have.members([ 'dr-mario', 'mario' ]);
+      expect(fetch_default_reviewers({ config, excludes: [ 'luigi' ] })).to.have.members([ 'dr-mario', 'mario' ]);
     });
   });
 

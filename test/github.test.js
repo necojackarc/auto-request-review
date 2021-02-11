@@ -136,7 +136,7 @@ describe('github', function() {
       github.getOctokit.returns(octokit);
     });
 
-    it('assigns reviwers', async function() {
+    it('assigns reviewers', async function() {
       const reviewers = [ 'mario', 'princess-peach' ];
       await assign_reviewers(reviewers);
 

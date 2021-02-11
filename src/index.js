@@ -8,7 +8,7 @@ const {
   identify_reviewers_by_changed_files,
   identify_reviewers_by_author,
   should_request_review,
-  fetch_default_reviwers,
+  fetch_default_reviewers,
   randomly_pick_reviewers,
 } = require('./reviewer');
 
@@ -43,22 +43,22 @@ async function run() {
   core.info('Identifying reviewers based on the author');
   const reviewers_based_on_author = identify_reviewers_by_author({ config, author });
 
-  core.info('Adding other group membres to reviwers if group assignment feature is on');
-  const reviwers_from_same_teams = fetch_other_group_members({ config, author });
+  core.info('Adding other group membres to reviewers if group assignment feature is on');
+  const reviewers_from_same_teams = fetch_other_group_members({ config, author });
 
-  let reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviewers_based_on_author, ...reviwers_from_same_teams ]) ];
+  let reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviewers_based_on_author, ...reviewers_from_same_teams ]) ];
 
   if (reviewers.length === 0) {
-    core.info('Matched no reviwers');
-    const default_reviwers = fetch_default_reviwers({ config, excludes: [ author ] });
+    core.info('Matched no reviewers');
+    const default_reviewers = fetch_default_reviewers({ config, excludes: [ author ] });
 
-    if (default_reviwers.length === 0) {
-      core.info('No default reviwers are matched; terminating the process');
+    if (default_reviewers.length === 0) {
+      core.info('No default reviewers are matched; terminating the process');
       return;
     }
 
-    core.info('Falling back to the default reviwers');
-    reviewers.push(...default_reviwers);
+    core.info('Falling back to the default reviewers');
+    reviewers.push(...default_reviewers);
   }
 
   core.info('Randomly picking reviewers if the number of reviewers is set');
