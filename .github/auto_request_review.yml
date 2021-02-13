@@ -1,6 +1,15 @@
 reviewers:
   default:
     - necojackarc
+    - repository-owner
+
+  groups:
+    repository-owner:
+      - necojackarc
+
+files:
+  '**/*':
+    - repository-owner
 
 options:
   ignore_draft: true
