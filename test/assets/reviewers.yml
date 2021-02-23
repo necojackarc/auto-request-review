@@ -1,0 +1,14 @@
+reviewers:
+  groups:
+    repository-owner:
+      - necojackarc
+
+files:
+  '**/*':
+    - repository-owner
+
+options:
+  ignore_draft: true
+  ignored_keywords:
+    - DO NOT REVIEW
+  enable_group_assignment: false
