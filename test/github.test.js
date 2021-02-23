@@ -44,7 +44,7 @@ describe('github', function() {
   });
 
   describe('fetch_config()', function() {
-    const config_path = '.github/auto_request_review.yml';
+    const config_path = 'test/assets/reviewers.yml';
     const encoding = 'utf8';
     const content = fs.readFileSync(config_path, encoding);
 
