@@ -99,14 +99,14 @@ describe('github', function() {
 
     it('fetch changed files through the last page', async function() {
       const filenames = [];
-      for (let i = 0; i < 222; i += 1) {
-        filenames.push(`path/to/file${i}`);
+      for (let index = 0; index < 222; index += 1) {
+        filenames.push(`path/to/file${index}`);
       }
 
       const page_size = 100;
       const filenames_in_chunks = [];
-      for (let i = 0; i < filenames.length; i += page_size) {
-        filenames_in_chunks.push(filenames.slice(i, i + page_size));
+      for (let index = 0; index < filenames.length; index += page_size) {
+        filenames_in_chunks.push(filenames.slice(index, index + page_size));
       }
 
       // Make sure filenames are correctly split into chunks
