@@ -13059,7 +13059,7 @@ const {
 } = __webpack_require__(909);
 
 async function run() {
-  core.info('Fetching configuration file from the base branch');
+  core.info('Fetching configuration file from the source branch');
 
   let config;
 

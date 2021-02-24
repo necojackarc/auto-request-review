@@ -13,7 +13,7 @@ const {
 } = require('./reviewer');
 
 async function run() {
-  core.info('Fetching configuration file from the base branch');
+  core.info('Fetching configuration file from the source branch');
 
   let config;
 

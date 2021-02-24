@@ -4,10 +4,6 @@ const github = require('../src/github');
 const sinon = require('sinon');
 const { expect } = require('chai');
 
-// This import runs the action, so you always see the following error messages:
-// > Fetching configuration file from the base branch
-// > ::error::Error: Parameter token or opts.auth is required
-// This is a bit annyoing but there is no bad effect, so just ignore them now.
 const { run } = require('../src/index');
 
 describe('index', function() {
