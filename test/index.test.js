@@ -55,7 +55,7 @@ describe('index', function() {
       expect(github.assign_reviewers.lastCall.args[0]).to.have.members([ 'mario', 'princess-peach' ]);
     });
 
-    it('requests reivew based on groups that authoer belongs to', async function() {
+    it('requests review based on groups that author belongs to', async function() {
       const config = {
         reviewers: {
           defaults: [ 'dr-mario' ],
