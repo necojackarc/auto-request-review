@@ -149,6 +149,10 @@ describe('github', function() {
           'mario',
           'princess-peach',
         ],
+        team_reviewers: [
+          'mario',
+          'princess-peach',
+        ],
       });
     });
   });
