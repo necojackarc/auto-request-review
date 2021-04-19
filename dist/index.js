@@ -13535,6 +13535,7 @@ async function assign_reviewers(reviewers) {
     repo: context.repo.repo,
     pull_number: context.payload.pull_request.number,
     reviewers,
+    team_reviewers: reviewers,
   });
 }
 

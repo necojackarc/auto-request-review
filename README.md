@@ -118,8 +118,8 @@ The format of a configuration file is as follows:
 reviewers:
   # The default reviewers
   defaults:
-    - repository-owners
-    - octocat
+    - repository-owners # group
+    - octocat # username
 
   # Reviewer groups each of which has a list of GitHub usernames
   groups:
@@ -175,6 +175,8 @@ options:
 
 The default configuration file location is `.github/auto_request_review.yml` but you can override it in your workflow configuration file.
 
+To specify reviewers, you can use GitHub teams as well as GitHub usernames, however, you need to configure your personal access token (see below).
+
 ### Workflow configuration
 Create a workflow file in `.github/workflows` (e.g. `.github/workflows/auto_request_review.yml`):
 
@@ -195,4 +197,25 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: .github/reviewers.yml # Config file location override
+```
+
+### (Optional) GitHub Personal Access Token
+
+When the default `GITHUB_TOKEN` doesn't have the necessary permissions, you need to [create a new GitHub personal access token (PAT)](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token).
+
+For instance, if you'd like to use [GitHub teams](https://docs.github.com/en/organizations/organizing-members-into-teams/about-teams) to specify reviewers, you need to make a new PAT because the default `GITHUB_TOKEN` doesn't have the permission to request a review from a team.
+
+The PAT needs to have the `repo` scope and the account the PAT belongs to needs to have the write permission to the repository. Once you create a new PAT, set it as a secret in your repository.
+
+Let's say you have a `@your-awesome-org/happy-team` team and make a new secret `PAT_FOR_AUTO_REQUEST_REVIEW` with your PAT, the configurations files will look like:
+
+```yaml
+files:
+  '**':
+    - happy-team # GitHub team
+```
+
+```yaml
+        with:
+          token: ${{ secrets.PAT_FOR_AUTO_REQUEST_REVIEW }}
 ```
