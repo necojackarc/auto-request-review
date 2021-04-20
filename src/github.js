@@ -2,6 +2,7 @@
 
 const core = require('@actions/core');
 const github = require('@actions/github');
+const partition = require('lodash/partition');
 const yaml = require('yaml');
 
 class PullRequest {
@@ -80,12 +81,15 @@ async function assign_reviewers(reviewers) {
   const context = get_context();
   const octokit = get_octokit();
 
+  const [ teams_with_prefix, individuals ] = partition(reviewers, (reviewer) => reviewer.startsWith('team:'));
+  const teams = teams_with_prefix.map((team_with_prefix) => team_with_prefix.replace('team:', ''));
+
   return octokit.pulls.requestReviewers({
     owner: context.repo.owner,
     repo: context.repo.repo,
     pull_number: context.payload.pull_request.number,
-    reviewers,
-    team_reviewers: reviewers,
+    reviewers: individuals,
+    team_reviewers: teams,
   });
 }
 

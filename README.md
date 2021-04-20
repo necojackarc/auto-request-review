@@ -120,12 +120,14 @@ reviewers:
   defaults:
     - repository-owners # group
     - octocat # username
+    - team:default-reviewers # GitHub team
 
   # Reviewer groups each of which has a list of GitHub usernames
   groups:
     repository-owners:
       - me # username
       - you # username
+      - team:owners # GitHub team
     core-contributors:
       - good-boy # username
       - good-girl # username
@@ -138,6 +140,7 @@ reviewers:
   per_author:
     engineers:
       - engineers # group
+      - team:engineering-managers # GitHub team
     lead_designer:
       - js-lovers # group
       - desinger_a # username
@@ -152,6 +155,7 @@ files:
   # You can assign groups defined above as well as GitHub usernames.
   '**':
     - repository-owners # group
+    - team:external-reviewers # GitHub team
   '**/*.js':
     - core-contributors # group
     - js-lovers # group
@@ -174,8 +178,6 @@ options:
 ```
 
 The default configuration file location is `.github/auto_request_review.yml` but you can override it in your workflow configuration file.
-
-To specify reviewers, you can use GitHub teams as well as GitHub usernames, however, you need to configure your personal access token (see below).
 
 ### Workflow configuration
 Create a workflow file in `.github/workflows` (e.g. `.github/workflows/auto_request_review.yml`):
@@ -212,7 +214,7 @@ Let's say you have a `@your-awesome-org/happy-team` team and make a new secret `
 ```yaml
 files:
   '**':
-    - happy-team # GitHub team
+    - team:happy-team # GitHub team
 ```
 
 ```yaml
