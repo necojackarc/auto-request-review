@@ -137,7 +137,7 @@ describe('github', function() {
     });
 
     it('assigns reviewers', async function() {
-      const reviewers = [ 'mario', 'princess-peach' ];
+      const reviewers = [ 'mario', 'princess-peach', 'team:koopa-troop' ];
       await assign_reviewers(reviewers);
 
       expect(spy.calledOnce).to.be.true;
@@ -150,8 +150,7 @@ describe('github', function() {
           'princess-peach',
         ],
         team_reviewers: [
-          'mario',
-          'princess-peach',
+          'koopa-troop',
         ],
       });
     });

@@ -2,7 +2,7 @@
 
 const core = require('@actions/core');
 const minimatch = require('minimatch');
-const sampleSize = require('lodash/sampleSize');
+const sample_size = require('lodash/sampleSize');
 
 function fetch_other_group_members({ author, config }) {
   const DEFAULT_OPTIONS = {
@@ -120,7 +120,7 @@ function randomly_pick_reviewers({ reviewers, config }) {
     return reviewers;
   }
 
-  return sampleSize(reviewers, number_of_reviewers);
+  return sample_size(reviewers, number_of_reviewers);
 }
 
 /* Private */
