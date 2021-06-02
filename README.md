@@ -221,3 +221,7 @@ files:
         with:
           token: ${{ secrets.PAT_FOR_AUTO_REQUEST_REVIEW }}
 ```
+
+#### Dependabot compatibility
+
+Note that with the [recent change to GitHub Actions that are created by Dependabot](https://github.blog/changelog/2021-02-19-github-actions-workflows-triggered-by-dependabot-prs-will-run-with-read-only-permissions/), the `pull_request` event will no longer give access to your secrets to this action. Instead you will need to use the `pull_request_target` event. If you do this make sure to read [Keeping your GitHub Actions and workflows secure: Preventing pwn requests](https://securitylab.github.com/research/github-actions-preventing-pwn-requests/) to understand the risks involved.
