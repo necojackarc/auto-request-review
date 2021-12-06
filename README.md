@@ -79,7 +79,7 @@ You can define the default reviewers who will be assigned when no reviewers are 
 
 ```yaml
 reviewers:
-  default:
+  defaults:
     - repository-owners
 ```
 
