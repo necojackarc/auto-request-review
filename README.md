@@ -71,7 +71,7 @@ reviewers:
       - js-woman
 
 options:
-  enable_group_assignment: false
+  enable_group_assignment: true
 ```
 
 ### Auto-assign the default reviewers if no reviewers are matched to your rules
