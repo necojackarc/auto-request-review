@@ -199,6 +199,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: .github/reviewers.yml # Config file location override
+          use_local: true # Look for config locally during run instead of in repo
 ```
 
 ### (Optional) GitHub Personal Access Token
