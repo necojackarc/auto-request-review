@@ -24,6 +24,12 @@ async function run() {
       core.warning('No configuration file is found in the base branch; terminating the process');
       return;
     }
+
+    if (error.message === 'Local file missing') {
+      core.warning('No configuration file is found locally; terminating the process');
+      return;
+    }
+
     throw error;
   }
 

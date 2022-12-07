@@ -9,6 +9,9 @@ inputs:
   config:
     required: false
     default: '.github/auto_request_review.yml'
+  use_local:
+    required: false
+    default: 'false'
 runs:
   using: 'node16'
   main: 'dist/index.js'

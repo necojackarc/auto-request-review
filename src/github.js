@@ -1,6 +1,7 @@
 'use strict';
 
 const core = require('@actions/core');
+const fs = require('fs');
 const github = require('@actions/github');
 const partition = require('lodash/partition');
 const yaml = require('yaml');
@@ -36,15 +37,32 @@ async function fetch_config() {
   const context = get_context();
   const octokit = get_octokit();
   const config_path = get_config_path();
+  const useLocal = get_use_local();
+  let content = '';
 
-  const { data: response_body } = await octokit.repos.getContent({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    path: config_path,
-    ref: context.ref,
-  });
+  if (!useLocal) {
+    const { data: response_body } = await octokit.repos.getContent({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      path: config_path,
+      ref: context.ref,
+    });
 
-  const content = Buffer.from(response_body.content, response_body.encoding).toString();
+    content = Buffer.from(response_body.content, response_body.encoding).toString();
+  } else {
+    try {
+      content = fs.readFileSync(config_path).toString();
+
+      if (!content) {
+        throw new Error();
+      }
+    } catch (error) {
+      core.debug(`Error when reading local file: ${error}`);
+
+      throw new Error('Local file missing');
+    }
+  }
+
   return yaml.parse(content);
 }
 
@@ -98,6 +116,7 @@ async function assign_reviewers(reviewers) {
 let context_cache;
 let token_cache;
 let config_path_cache;
+let use_local_cache;
 let octokit_cache;
 
 function get_context() {
@@ -110,6 +129,10 @@ function get_token() {
 
 function get_config_path() {
   return config_path_cache || (config_path_cache = core.getInput('config'));
+}
+
+function get_use_local() {
+  return use_local_cache ?? (use_local_cache = core.getInput('use_local') === 'true');
 }
 
 function get_octokit() {
