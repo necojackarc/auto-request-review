@@ -199,7 +199,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: .github/reviewers.yml # Config file location override
-          use_local: true # Look for config locally during run instead of in repo
+          # Look for config locally during run instead of in repo.
+          # For instance, if you'd like to use a config file stored in external storage,
+          # you can fetch it before you run this action, then let this action pick it with `use_local` `true`.
+          # See https://github.com/necojackarc/auto-request-review/issues/76 for more details.
+          use_local: true
 ```
 
 ### (Optional) GitHub Personal Access Token
