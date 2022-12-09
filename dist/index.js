@@ -15858,6 +15858,18 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 4438:
+/***/ ((module) => {
+
+const LOCAL_FILE_MISSING = 'Local file missing';
+
+module.exports = {
+  LOCAL_FILE_MISSING,
+};
+
+
+/***/ }),
+
 /***/ 8396:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -15865,9 +15877,11 @@ function wrappy (fn, cb) {
 
 
 const core = __nccwpck_require__(2186);
+const fs = __nccwpck_require__(7147);
 const github = __nccwpck_require__(5438);
 const partition = __nccwpck_require__(2539);
 const yaml = __nccwpck_require__(4603);
+const { LOCAL_FILE_MISSING } = __nccwpck_require__(4438);
 
 class PullRequest {
   // ref: https://developer.github.com/v3/pulls/#get-a-pull-request
@@ -15900,15 +15914,32 @@ async function fetch_config() {
   const context = get_context();
   const octokit = get_octokit();
   const config_path = get_config_path();
+  const useLocal = get_use_local();
+  let content = '';
 
-  const { data: response_body } = await octokit.repos.getContent({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    path: config_path,
-    ref: context.ref,
-  });
+  if (!useLocal) {
+    const { data: response_body } = await octokit.repos.getContent({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      path: config_path,
+      ref: context.ref,
+    });
 
-  const content = Buffer.from(response_body.content, response_body.encoding).toString();
+    content = Buffer.from(response_body.content, response_body.encoding).toString();
+  } else {
+    try {
+      content = fs.readFileSync(config_path).toString();
+
+      if (!content) {
+        throw new Error();
+      }
+    } catch (error) {
+      core.debug(`Error when reading local file: ${error}`);
+
+      throw new Error(LOCAL_FILE_MISSING);
+    }
+  }
+
   return yaml.parse(content);
 }
 
@@ -15962,6 +15993,7 @@ async function assign_reviewers(reviewers) {
 let context_cache;
 let token_cache;
 let config_path_cache;
+let use_local_cache;
 let octokit_cache;
 
 function get_context() {
@@ -15974,6 +16006,10 @@ function get_token() {
 
 function get_config_path() {
   return config_path_cache || (config_path_cache = core.getInput('config'));
+}
+
+function get_use_local() {
+  return use_local_cache ?? (use_local_cache = core.getInput('use_local') === 'true');
 }
 
 function get_octokit() {
@@ -16010,6 +16046,7 @@ module.exports = {
 
 
 const core = __nccwpck_require__(2186);
+const { LOCAL_FILE_MISSING } = __nccwpck_require__(4438);
 const github = __nccwpck_require__(8396); // Don't destructure this object to stub with sinon in tests
 
 const {
@@ -16033,6 +16070,12 @@ async function run() {
       core.warning('No configuration file is found in the base branch; terminating the process');
       return;
     }
+
+    if (error.message === LOCAL_FILE_MISSING) {
+      core.warning('No configuration file is found locally; terminating the process');
+      return;
+    }
+
     throw error;
   }
 

@@ -1,6 +1,7 @@
 'use strict';
 
 const core = require('@actions/core');
+const { LOCAL_FILE_MISSING } = require('./constants');
 const github = require('./github'); // Don't destructure this object to stub with sinon in tests
 
 const {
@@ -24,6 +25,12 @@ async function run() {
       core.warning('No configuration file is found in the base branch; terminating the process');
       return;
     }
+
+    if (error.message === LOCAL_FILE_MISSING) {
+      core.warning('No configuration file is found locally; terminating the process');
+      return;
+    }
+
     throw error;
   }
 
