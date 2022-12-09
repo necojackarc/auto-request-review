@@ -16,7 +16,7 @@
     "@actions/core": "^1.9.1",
     "@actions/github": "^4.0.0",
     "lodash": "^4.17.21",
-    "minimatch": "^3.0.4",
+    "minimatch": "^3.0.5",
     "yaml": "^1.10.0"
   },
   "devDependencies": {
