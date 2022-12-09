@@ -15858,6 +15858,18 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 4438:
+/***/ ((module) => {
+
+const LOCAL_FILE_MISSING = 'Local file missing';
+
+module.exports = {
+  LOCAL_FILE_MISSING,
+};
+
+
+/***/ }),
+
 /***/ 8396:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -15869,6 +15881,7 @@ const fs = __nccwpck_require__(7147);
 const github = __nccwpck_require__(5438);
 const partition = __nccwpck_require__(2539);
 const yaml = __nccwpck_require__(4603);
+const { LOCAL_FILE_MISSING } = __nccwpck_require__(4438);
 
 class PullRequest {
   // ref: https://developer.github.com/v3/pulls/#get-a-pull-request
@@ -15923,7 +15936,7 @@ async function fetch_config() {
     } catch (error) {
       core.debug(`Error when reading local file: ${error}`);
 
-      throw new Error('Local file missing');
+      throw new Error(LOCAL_FILE_MISSING);
     }
   }
 
@@ -16033,6 +16046,7 @@ module.exports = {
 
 
 const core = __nccwpck_require__(2186);
+const { LOCAL_FILE_MISSING } = __nccwpck_require__(4438);
 const github = __nccwpck_require__(8396); // Don't destructure this object to stub with sinon in tests
 
 const {
@@ -16057,7 +16071,7 @@ async function run() {
       return;
     }
 
-    if (error.message === 'Local file missing') {
+    if (error.message === LOCAL_FILE_MISSING) {
       core.warning('No configuration file is found locally; terminating the process');
       return;
     }

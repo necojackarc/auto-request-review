@@ -5,6 +5,7 @@ const fs = require('fs');
 const github = require('@actions/github');
 const partition = require('lodash/partition');
 const yaml = require('yaml');
+const { LOCAL_FILE_MISSING } = require('./constants');
 
 class PullRequest {
   // ref: https://developer.github.com/v3/pulls/#get-a-pull-request
@@ -59,7 +60,7 @@ async function fetch_config() {
     } catch (error) {
       core.debug(`Error when reading local file: ${error}`);
 
-      throw new Error('Local file missing');
+      throw new Error(LOCAL_FILE_MISSING);
     }
   }
 
