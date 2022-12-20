@@ -34,6 +34,15 @@ function fetch_other_group_members({ author, config }) {
 }
 
 function identify_reviewers_by_changed_files({ config, changed_files, excludes = [] }) {
+  const DEFAULT_OPTIONS = {
+    last_match_only: false,
+  };
+
+  const { last_match_only } = {
+    ...DEFAULT_OPTIONS,
+    ...config.options,
+  };
+
   if (!config.files) {
     core.info('A "files" key does not exist in config; returning no reviewers for changed files.');
     return [];
@@ -43,6 +52,9 @@ function identify_reviewers_by_changed_files({ config, changed_files, excludes =
 
   Object.entries(config.files).forEach(([ glob_pattern, reviewers ]) => {
     if (changed_files.some((changed_file) => minimatch(changed_file, glob_pattern))) {
+      if (last_match_only) {
+        matching_reviewers.length = 0; // clear previous matches
+      }
       matching_reviewers.push(...reviewers);
     }
   });
