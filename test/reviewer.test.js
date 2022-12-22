@@ -116,15 +116,15 @@ describe('reviewer', function() {
       expect(identify_reviewers_by_changed_files({ config, changed_files, excludes })).to.have.members([ 'mario', 'luigi', 'princess-peach', 'toad' ]);
     });
 
-    it('uses the only last matching files-changed pattern with `last_match_only` `true` (CODEWONERS-compatible)', function() {
+    it('uses the only last matching files-changed pattern with `last_files_match_only` `true` (CODEWONERS-compatible)', function() {
       const changed_files = [ 'backend/some-specific-file' ];
-      const config_with_last_match_only = {
+      const config_with_last_files_match_only = {
         ...config,
         options: {
-          last_match_only: true,
+          last_files_match_only: true,
         },
       };
-      expect(identify_reviewers_by_changed_files({ config: config_with_last_match_only, changed_files })).to.have.members([ 'mario', 'someone-specific' ]);
+      expect(identify_reviewers_by_changed_files({ config: config_with_last_files_match_only, changed_files })).to.have.members([ 'mario', 'someone-specific' ]);
     });
   });
 

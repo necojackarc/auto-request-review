@@ -175,6 +175,10 @@ options:
   # Randomly pick reviewers up to this number.
   # Do not set this option if you'd like to assign all matching reviewers.
   number_of_reviewers: 3
+
+  # If it's true, the last matching files-change pattern takes the most precedence (CODEOWNERS-compatible)
+  # See https://github.com/necojackarc/auto-request-review/pull/80 for more details.
+  last_files_match_only: false
 ```
 
 The default configuration file location is `.github/auto_request_review.yml` but you can override it in your workflow configuration file.
