@@ -232,6 +232,19 @@ files:
           token: ${{ secrets.PAT_FOR_AUTO_REQUEST_REVIEW }}
 ```
 
+### Working with Forks
+
+By default, forks do not have `write` access or permissions with workflows. However, for workflows that need `write` access to do menial tasks like make comments or add reviewers, the `pull_request_target` trigger can be used. This trigger gives forks `write` access for the workflows. You can read more about the [`pull_request_target` trigger here](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target).
+
+The `pull_request_target` trigger works for both native branches as well as forks.
+
+```yaml
+name: Auto Request Review
+
+on:
+  pull_request_target:
+```
+
 #### Dependabot compatibility
 
 Note that with the [recent change to GitHub Actions that are created by Dependabot](https://github.blog/changelog/2021-02-19-github-actions-workflows-triggered-by-dependabot-prs-will-run-with-read-only-permissions/), the `pull_request` event will no longer give access to your secrets to this action. Instead you will need to use the `pull_request_target` event. If you do this make sure to read [Keeping your GitHub Actions and workflows secure: Preventing pwn requests](https://securitylab.github.com/research/github-actions-preventing-pwn-requests/) to understand the risks involved.
