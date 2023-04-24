@@ -17,7 +17,7 @@
     "@actions/github": "^4.0.0",
     "lodash": "^4.17.21",
     "minimatch": "^3.0.5",
-    "yaml": "^1.10.0"
+    "yaml": "^2.2.2"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.33.3",
