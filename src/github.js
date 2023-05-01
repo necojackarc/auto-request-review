@@ -112,6 +112,16 @@ async function assign_reviewers(reviewers) {
   });
 }
 
+async function get_team_members(team) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  return octokit.teams.listMembersInOrg({
+    org: context.repo.org,
+    team_slug: team,
+  });
+}
+
 /* Private */
 
 let context_cache;
@@ -158,4 +168,5 @@ module.exports = {
   fetch_changed_files,
   assign_reviewers,
   clear_cache,
+  get_team_members,
 };
