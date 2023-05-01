@@ -10,6 +10,9 @@ const {
 } = require('../src/reviewer');
 const { expect } = require('chai');
 
+const github = require('../src/github');
+const sinon = require('sinon');
+
 describe('reviewer', function() {
   describe('fetch_other_group_members()', function() {
 
@@ -69,7 +72,6 @@ describe('reviewer', function() {
   });
 
   describe('identify_reviewers_by_changed_files()', function() {
-
     const config = {
       reviewers: {
         groups: {
@@ -139,9 +141,13 @@ describe('reviewer', function() {
           engineers: [ 'engineers', 'dr-mario' ],
           designers: [ 'designers' ],
           yoshi: [ 'mario', 'luige' ],
+          'team:koopa-troop': [ 'mario' ],
         },
       },
     };
+
+    const stub = sinon.stub(github, 'get_team_members');
+    stub.withArgs('koopa-troop').returns([ 'bowser', 'king-boo', 'goomboss' ]);
 
     it('returns nothing when config does not have a "per-author" key', function() {
       const author = 'THIS DOES NOT MATTER';
@@ -166,6 +172,11 @@ describe('reviewer', function() {
     it('works when the author belongs to more than one group', function() {
       const author = 'mario';
       expect(identify_reviewers_by_author({ config, author })).to.have.members([ 'dr-mario', 'luigi', 'wario', 'waluigi', 'princess-peach', 'princess-daisy' ]);
+    });
+
+    it('works when gh team slug used for auther', function() {
+      const author = 'bowser';
+      expect(identify_reviewers_by_author({ config, author })).to.have.members([ 'mario' ]);
     });
   });
 
