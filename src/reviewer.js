@@ -78,9 +78,6 @@ function identify_reviewers_by_author({ config, 'author': specified_author }) {
       return true;
     }
 
-    // if author is on team that matches `author`
-    // specified author = hbrysiewicz
-    // author = 'team:crosscomply'
     if (author.startsWith('team:')) {
       const team = author.replace('team:', '');
       const individuals_in_team = github.get_team_members(team);
