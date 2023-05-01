@@ -112,10 +112,12 @@ async function assign_reviewers(reviewers) {
   });
 }
 
+// https://docs.github.com/en/rest/teams/members?apiVersion=2022-11-28#list-team-members
 async function get_team_members(team) {
   const context = get_context();
   const octokit = get_octokit();
 
+  console.log(context);
   return octokit.teams.listMembersInOrg({
     org: context.repo.org,
     team_slug: team,
