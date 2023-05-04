@@ -138,9 +138,9 @@ describe('reviewer', function() {
           designers: [ 'mario', 'princess-peach', 'princess-daisy' ],
         },
         per_author: {
-          engineers: [ 'engineers', 'dr-mario' ],
-          designers: [ 'designers' ],
-          yoshi: [ 'mario', 'luige' ],
+          'engineers': [ 'engineers', 'dr-mario' ],
+          'designers': [ 'designers' ],
+          'yoshi': [ 'mario', 'luige' ],
           'team:koopa-troop': [ 'mario' ],
         },
       },
