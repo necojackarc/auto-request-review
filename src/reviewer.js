@@ -80,7 +80,7 @@ function identify_reviewers_by_author({ config, 'author': specified_author }) {
 
     if (author.startsWith('team:')) {
       const team = author.replace('team:', '');
-      const individuals_in_team = github.get_team_members(team)?.map((member) => member.login);
+      const individuals_in_team = github.get_team_members(team);
       if (individuals_in_team.includes(specified_author)) {
         return true;
       }

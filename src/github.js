@@ -118,10 +118,12 @@ async function get_team_members(team) {
   const octokit = get_octokit();
 
   console.log(context);
-  return octokit.teams.listMembersInOrg({
+  const { data: response_body } = octokit.teams.listMembersInOrg({
     org: context.repo.org,
     team_slug: team,
   });
+
+  return response_body.map((member) => member.login);
 }
 
 /* Private */
