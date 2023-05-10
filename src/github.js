@@ -117,11 +117,10 @@ async function get_team_members(team) {
   const context = get_context();
   const octokit = get_octokit();
 
-  console.log(context);
   return octokit.teams.listMembersInOrg({
     org: context.repo.org,
     team_slug: team,
-  });
+  })?.map((member) => member.login)
 }
 
 /* Private */
