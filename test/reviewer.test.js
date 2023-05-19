@@ -138,16 +138,29 @@ describe('reviewer', function() {
           designers: [ 'mario', 'princess-peach', 'princess-daisy' ],
         },
         per_author: {
-          engineers: [ 'engineers', 'dr-mario' ],
-          designers: [ 'designers' ],
-          yoshi: [ 'mario', 'luige' ],
+          'engineers': [ 'engineers', 'dr-mario' ],
+          'designers': [ 'designers' ],
+          'yoshi': [ 'mario', 'luige' ],
           'team:koopa-troop': [ 'mario' ],
         },
       },
     };
 
     const stub = sinon.stub(github, 'get_team_members');
-    stub.withArgs('koopa-troop').returns([ 'bowser', 'king-boo', 'goomboss' ]);
+    stub.withArgs('koopa-troop').returns([
+      {
+        login: 'bowser',
+        id: 1,
+      },
+      {
+        login: 'king-boo',
+        id: 2,
+      },
+      {
+        login: 'goomboss',
+        id: 3,
+      },
+    ]);
 
     it('returns nothing when config does not have a "per-author" key', function() {
       const author = 'THIS DOES NOT MATTER';

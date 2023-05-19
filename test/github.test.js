@@ -177,7 +177,7 @@ describe('github', function() {
       expect(spy.calledOnce).to.be.true;
       expect(spy.lastCall.args[0]).to.deep.equal({
         org: 'necojackarc',
-        team_slug: 'koopa-troop'
+        team_slug: 'koopa-troop',
       });
     });
   });
