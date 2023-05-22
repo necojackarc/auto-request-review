@@ -16025,7 +16025,7 @@ async function get_team_members(team) {
   return octokit.teams.listMembersInOrg({
     org: context.repo.org,
     team_slug: team,
-  })?.map((member) => member.login)
+  })?.map((member) => member.login);
 }
 
 /* Private */
