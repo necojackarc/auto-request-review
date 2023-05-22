@@ -26,7 +26,7 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Check if dist is updated
+    - name: Check if dist is updatedddddddddddddddd
       run: |
         npm run build
         set -e # exit immediatel if a command below returns a non-zero status
