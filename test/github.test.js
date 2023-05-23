@@ -158,10 +158,10 @@ describe('github', function() {
   });
 
   describe('get_team_members()', function() {
-    const spy = sinon.spy();
+    const stub = sinon.stub();
     const octokit = {
       teams: {
-        listMembersInOrg: spy,
+        listMembersInOrg: stub,
       },
     };
 
@@ -171,14 +171,23 @@ describe('github', function() {
     });
 
     it('gets team members', async function() {
-      const team = 'koopa-troop';
-      await get_team_members(team);
+      stub.returns({
+        data: [
+          { login: 'bowser' },
+          { login: 'king-boo' },
+          { login: 'goomboss' },
+        ],
+      });
 
-      expect(spy.calledOnce).to.be.true;
-      expect(spy.lastCall.args[0]).to.deep.equal({
+      const team = 'koopa-troop';
+      const actual = await get_team_members(team);
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.lastCall.args[0]).to.deep.equal({
         org: 'necojackarc',
         team_slug: 'koopa-troop',
       });
+      expect(actual).to.deep.equal([ 'bowser', 'king-boo', 'goomboss' ]);
     });
   });
 });

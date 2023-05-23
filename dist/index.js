@@ -16254,17 +16254,33 @@ async function identify_reviewers_by_author({ config, 'author': specified_author
     return [];
   }
 
+  // async behavior must happen first
+  const team_member_promises = await Object.keys(config.reviewers.per_author).map(async (author) => {
+    if (author.startsWith('team:')) {
+      const team = author.replace('team:', '');
+
+      return {
+        author,
+        members: await github.get_team_members(team) || [],
+      };
+    }
+
+    return {
+      author,
+      members: [],
+    };
+  });
+  const team_members = await Promise.all(team_member_promises);
+
   // More than one author can be matched because groups are set as authors
-  const matching_authors = Object.keys(config.reviewers.per_author).filter(async (author) => {
+  const matching_authors = Object.keys(config.reviewers.per_author).filter((author) => {
     if (author === specified_author) {
       return true;
     }
 
     if (author.startsWith('team:')) {
-      const team = author.replace('team:', '');
-      const individuals_in_team = await github.get_team_members(team) || [];
-      core.info(individuals_in_team);
-      if (individuals_in_team?.includes(specified_author)) {
+      const { members } = team_members.find((team) => team.author === author);
+      if (members.includes(specified_author)) {
         return true;
       }
     }
