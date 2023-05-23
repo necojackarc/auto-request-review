@@ -27,10 +27,11 @@ jobs:
       run: npm install
 
     - name: Check if dist is updated
+      if: github.ref == 'refs/heads/master'
       run: |
         npm run build
-        set -e # exit immediatel if a command below returns a non-zero status
-        git status # display the reuslts for debugging
+        set -e # exit immediate if a command below returns a non-zero status
+        git status # display the results for debugging
         test -z "$(git status --porcelain)"
 
     - name: Run linter and tests
