@@ -116,9 +116,10 @@ async function assign_reviewers(reviewers) {
 async function get_team_members(team) {
   const context = get_context();
   const octokit = get_octokit();
+  const org = core.getInput('org') || context.payload.repository.owner.login;
 
   return octokit.teams.listMembersInOrg({
-    org: context.repo.org,
+    org,
     team_slug: team,
   })?.data?.map((member) => member.login);
 }
