@@ -16017,6 +16017,17 @@ async function assign_reviewers(reviewers) {
   });
 }
 
+// https://docs.github.com/en/rest/teams/members?apiVersion=2022-11-28#list-team-members
+async function get_team_members(team) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  return octokit.teams.listMembersInOrg({
+    org: context.repo.org,
+    team_slug: team,
+  })?.map((member) => member.login);
+}
+
 /* Private */
 
 let context_cache;
@@ -16063,6 +16074,7 @@ module.exports = {
   fetch_changed_files,
   assign_reviewers,
   clear_cache,
+  get_team_members,
 };
 
 
@@ -16170,6 +16182,7 @@ if (process.env.NODE_ENV !== 'automated-testing') {
 const core = __nccwpck_require__(2186);
 const minimatch = __nccwpck_require__(3973);
 const sample_size = __nccwpck_require__(2199);
+const github = __nccwpck_require__(8396); // Don't destructure this object to stub with sinon in tests
 
 function fetch_other_group_members({ author, config }) {
   const DEFAULT_OPTIONS = {
@@ -16242,6 +16255,14 @@ function identify_reviewers_by_author({ config, 'author': specified_author }) {
   const matching_authors = Object.keys(config.reviewers.per_author).filter((author) => {
     if (author === specified_author) {
       return true;
+    }
+
+    if (author.startsWith('team:')) {
+      const team = author.replace('team:', '');
+      const individuals_in_team = github.get_team_members(team);
+      if (individuals_in_team.includes(specified_author)) {
+        return true;
+      }
     }
 
     const individuals_in_author_setting = replace_groups_with_individuals({ reviewers: [ author ], config });

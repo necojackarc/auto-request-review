@@ -3,6 +3,7 @@
 const core = require('@actions/core');
 const minimatch = require('minimatch');
 const sample_size = require('lodash/sampleSize');
+const github = require('./github'); // Don't destructure this object to stub with sinon in tests
 
 function fetch_other_group_members({ author, config }) {
   const DEFAULT_OPTIONS = {
@@ -75,6 +76,14 @@ function identify_reviewers_by_author({ config, 'author': specified_author }) {
   const matching_authors = Object.keys(config.reviewers.per_author).filter((author) => {
     if (author === specified_author) {
       return true;
+    }
+
+    if (author.startsWith('team:')) {
+      const team = author.replace('team:', '');
+      const individuals_in_team = github.get_team_members(team);
+      if (individuals_in_team.includes(specified_author)) {
+        return true;
+      }
     }
 
     const individuals_in_author_setting = replace_groups_with_individuals({ reviewers: [ author ], config });
