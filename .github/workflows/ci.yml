@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [master]
-  pull_request_target:
+  pull_request:
     branches: ['**']
 
 jobs:
@@ -17,8 +17,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      with:
-        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    - run: |
+        git fetch origin $REF
+        git checkout $REF
+      env:
+        REF: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
