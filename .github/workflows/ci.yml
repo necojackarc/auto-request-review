@@ -17,6 +17,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
@@ -27,7 +29,6 @@ jobs:
       run: npm install
 
     - name: Check if dist is updated
-      if: github.ref == 'refs/heads/master'
       run: |
         npm run build
         set -e # exit immediate if a command below returns a non-zero status
