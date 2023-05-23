@@ -66,21 +66,21 @@ function identify_reviewers_by_changed_files({ config, changed_files, excludes =
   return [ ...new Set(individuals) ].filter((reviewer) => !excludes.includes(reviewer));
 }
 
-function identify_reviewers_by_author({ config, 'author': specified_author }) {
+async function identify_reviewers_by_author({ config, 'author': specified_author }) {
   if (!(config.reviewers && config.reviewers.per_author)) {
     core.info('"per_author" is not set; returning no reviewers for the author.');
     return [];
   }
 
   // More than one author can be matched because groups are set as authors
-  const matching_authors = Object.keys(config.reviewers.per_author).filter((author) => {
+  const matching_authors = Object.keys(config.reviewers.per_author).filter(async (author) => {
     if (author === specified_author) {
       return true;
     }
 
     if (author.startsWith('team:')) {
       const team = author.replace('team:', '');
-      const individuals_in_team = github.get_team_members(team) || [];
+      const individuals_in_team = await github.get_team_members(team) || [];
       core.info(individuals_in_team);
       if (individuals_in_team?.includes(specified_author)) {
         return true;

@@ -16023,10 +16023,12 @@ async function get_team_members(team) {
   const octokit = get_octokit();
   const org = core.getInput('org') || context.payload.repository.owner.login;
 
-  return octokit.teams.listMembersInOrg({
+  const { data } = await octokit.teams.listMembersInOrg({
     org,
     team_slug: team,
-  })?.data?.map((member) => member.login);
+  });
+
+  return data?.map((member) => member.login);
 }
 
 /* Private */
@@ -16135,7 +16137,7 @@ async function run() {
   const reviewers_based_on_files = identify_reviewers_by_changed_files({ config, changed_files, excludes: [ author ] });
 
   core.info('Identifying reviewers based on the author');
-  const reviewers_based_on_author = identify_reviewers_by_author({ config, author });
+  const reviewers_based_on_author = await identify_reviewers_by_author({ config, author });
 
   core.info('Adding other group members to reviewers if group assignment feature is on');
   const reviewers_from_same_teams = fetch_other_group_members({ config, author });
@@ -16246,21 +16248,21 @@ function identify_reviewers_by_changed_files({ config, changed_files, excludes =
   return [ ...new Set(individuals) ].filter((reviewer) => !excludes.includes(reviewer));
 }
 
-function identify_reviewers_by_author({ config, 'author': specified_author }) {
+async function identify_reviewers_by_author({ config, 'author': specified_author }) {
   if (!(config.reviewers && config.reviewers.per_author)) {
     core.info('"per_author" is not set; returning no reviewers for the author.');
     return [];
   }
 
   // More than one author can be matched because groups are set as authors
-  const matching_authors = Object.keys(config.reviewers.per_author).filter((author) => {
+  const matching_authors = Object.keys(config.reviewers.per_author).filter(async (author) => {
     if (author === specified_author) {
       return true;
     }
 
     if (author.startsWith('team:')) {
       const team = author.replace('team:', '');
-      const individuals_in_team = github.get_team_members(team) || [];
+      const individuals_in_team = await github.get_team_members(team) || [];
       core.info(individuals_in_team);
       if (individuals_in_team?.includes(specified_author)) {
         return true;
