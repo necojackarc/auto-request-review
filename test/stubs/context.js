@@ -24,7 +24,6 @@ class ContextStub {
     return {
       owner: 'necojackarc',
       repo: 'auto-request-review',
-      org: 'necojackarc',
     };
   }
 }

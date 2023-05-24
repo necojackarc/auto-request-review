@@ -14,7 +14,6 @@ const {
   fetch_changed_files,
   assign_reviewers,
   clear_cache,
-  get_team_members,
 } = require('../src/github');
 
 describe('github', function() {
@@ -153,31 +152,6 @@ describe('github', function() {
         team_reviewers: [
           'koopa-troop',
         ],
-      });
-    });
-  });
-
-  describe('get_team_members()', function() {
-    const spy = sinon.spy();
-    const octokit = {
-      teams: {
-        listMembersInOrg: spy,
-      },
-    };
-
-    beforeEach(function() {
-      github.getOctokit.resetBehavior();
-      github.getOctokit.returns(octokit);
-    });
-
-    it('gets team members', async function() {
-      const team = 'koopa-troop';
-      await get_team_members(team);
-
-      expect(spy.calledOnce).to.be.true;
-      expect(spy.lastCall.args[0]).to.deep.equal({
-        org: 'necojackarc',
-        team_slug: 'koopa-troop',
       });
     });
   });
