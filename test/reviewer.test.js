@@ -9,7 +9,6 @@ const {
   randomly_pick_reviewers,
 } = require('../src/reviewer');
 const { expect } = require('chai');
-
 const github = require('../src/github');
 const sinon = require('sinon');
 
@@ -72,6 +71,7 @@ describe('reviewer', function() {
   });
 
   describe('identify_reviewers_by_changed_files()', function() {
+
     const config = {
       reviewers: {
         groups: {

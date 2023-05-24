@@ -1,6 +1,6 @@
 {
   "name": "auto-request-review",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "GitHub Action that automatically requests review of a pull request based on files changed",
   "main": "index.js",
   "scripts": {
