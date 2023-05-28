@@ -16001,6 +16001,30 @@ async function fetch_changed_files() {
   return changed_files;
 }
 
+async function is_collaborator(person) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  return await octokit.repos.checkCollaborator({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    username: person,
+  }).then(
+    (response) => {
+      if (response.status === 204) {
+        return true;
+      }
+      return false;
+    },
+    (error) => {
+      if (error.status === 404) {
+        return false;
+      }
+      throw error;
+    }
+  );
+}
+
 async function assign_reviewers(reviewers) {
   const context = get_context();
   const octokit = get_octokit();
@@ -16008,13 +16032,44 @@ async function assign_reviewers(reviewers) {
   const [ teams_with_prefix, individuals ] = partition(reviewers, (reviewer) => reviewer.startsWith('team:'));
   const teams = teams_with_prefix.map((team_with_prefix) => team_with_prefix.replace('team:', ''));
 
-  return octokit.pulls.requestReviewers({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    pull_number: context.payload.pull_request.number,
-    reviewers: individuals,
-    team_reviewers: teams,
-  });
+  const [ collaborators, non_collaborators ] = partition(
+    await Promise.all(individuals.map(
+      async (person) => ({
+        person: person,
+        status: await is_collaborator(person),
+      })
+    )),
+    ({ status }) => status
+  ).map(
+    (list) => list.map(
+      ({ person }) => person
+    )
+  );
+
+  const request_response = (collaborators.length === 0 && teams.length === 0)
+    ? null
+    : await octokit.pulls.requestReviewers({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+      reviewers: collaborators,
+      team_reviewers: teams,
+    });
+
+  const mention_response = non_collaborators.length === 0
+    ? null
+    : await octokit.pulls.createReview({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+      body: 'Auto-requesting reviews from non-collaborators: ' + non_collaborators.map((person) => '@' + person).join(' '),
+      event: 'COMMENT',
+    });
+
+  return {
+    request_response: request_response,
+    mention_response: mention_response,
+  };
 }
 
 /* Private */

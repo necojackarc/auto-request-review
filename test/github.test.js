@@ -124,24 +124,37 @@ describe('github', function() {
   });
 
   describe('assign_reviewers()', function() {
-    const spy = sinon.spy();
+    const request_spy = sinon.spy();
+    const mention_spy = sinon.spy();
+    const stub = sinon.stub();
     const octokit = {
       pulls: {
-        requestReviewers: spy,
+        requestReviewers: request_spy,
+        createReview: mention_spy,
+      },
+      repos: {
+        checkCollaborator: stub,
       },
     };
 
     beforeEach(function() {
+      request_spy.resetHistory();
+      mention_spy.resetHistory();
+      stub.reset();
       github.getOctokit.resetBehavior();
       github.getOctokit.returns(octokit);
     });
 
-    it('assigns reviewers', async function() {
+    it('assigns collaborators and teams as reviewers', async function() {
+      stub.resolves({ status: 204 });
+
       const reviewers = [ 'mario', 'princess-peach', 'team:koopa-troop' ];
       await assign_reviewers(reviewers);
 
-      expect(spy.calledOnce).to.be.true;
-      expect(spy.lastCall.args[0]).to.deep.equal({
+      expect(stub.calledTwice).to.be.true;
+
+      expect(request_spy.calledOnce).to.be.true;
+      expect(request_spy.lastCall.args[0]).to.deep.equal({
         owner: 'necojackarc',
         pull_number: 18,
         repo: 'auto-request-review',
@@ -152,6 +165,28 @@ describe('github', function() {
         team_reviewers: [
           'koopa-troop',
         ],
+      });
+
+      expect(mention_spy.notCalled).to.be.true;
+    });
+
+    it('assigns non-collaborators as reviewers', async function() {
+      stub.rejects({ status: 404 });
+
+      const reviewers = [ 'mario', 'princess-peach' ];
+      await assign_reviewers(reviewers);
+
+      expect(stub.calledTwice).to.be.true;
+
+      expect(request_spy.notCalled).to.be.true;
+
+      expect(mention_spy.calledOnce).to.be.true;
+      expect(mention_spy.lastCall.args[0]).to.deep.equal({
+        owner: 'necojackarc',
+        pull_number: 18,
+        repo: 'auto-request-review',
+        body: 'Auto-requesting reviews from non-collaborators: @mario @princess-peach',
+        event: 'COMMENT',
       });
     });
   });
