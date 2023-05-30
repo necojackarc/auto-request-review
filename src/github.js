@@ -116,7 +116,7 @@ async function assign_reviewers(reviewers) {
 async function get_team_members(team) {
   const context = get_context();
   const octokit = get_octokit();
-  const org = core.getInput('org') || context.payload.repository.owner.login;
+  const org = context.payload.repository.owner.login;
 
   const { data } = await octokit.teams.listMembersInOrg({
     org,
