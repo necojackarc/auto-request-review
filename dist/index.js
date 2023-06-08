@@ -16032,8 +16032,49 @@ async function assign_reviewers(reviewers) {
   const [ teams_with_prefix, individuals ] = partition(reviewers, (reviewer) => reviewer.startsWith('team:'));
   const teams = teams_with_prefix.map((team_with_prefix) => team_with_prefix.replace('team:', ''));
 
+  const comment_prefix = 'Auto-requesting reviews from non-collaborators: ';
+  const mention_prefix = '@';
+
+  const review_requested = new Set(await octokit.paginate(
+    octokit.pulls.listRequestedReviewers,
+    {
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+    }
+  ));
+  const review_list = await octokit.paginate(
+    octokit.pulls.listReviews,
+    {
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+    }
+  );
+  // Only consider mentions starting with the prefix
+  const already_mentioned = new Set(review_list.filter((review) => (
+    review.body.startsWith(comment_prefix)
+  )).map(
+    (review) => review.body.substring(comment_prefix.length).split(' ').filter(
+      (mention) => mention.startsWith(mention_prefix)
+    ).map(
+      (mention) => mention.substring(mention_prefix.length)
+    )
+  ).reduce(
+    (mentions, new_mentions) => mentions.concat(new_mentions), []
+  ));
+  // Only consider top-level reviews
+  const already_reviewed = new Set(review_list.filter(
+    (review) => review.user !== null
+  ).map((review) => review.user.login));
+
   const [ collaborators, non_collaborators ] = partition(
-    await Promise.all(individuals.map(
+    await Promise.all(individuals.filter((person) => (
+      !review_requested.has(person)
+      && !already_mentioned.has(person)
+      && !already_reviewed.has(person)
+      && person !== context.payload.pull_request.user.login
+    )).map(
       async (person) => ({
         person: person,
         status: await is_collaborator(person),
@@ -16062,7 +16103,7 @@ async function assign_reviewers(reviewers) {
       owner: context.repo.owner,
       repo: context.repo.repo,
       pull_number: context.payload.pull_request.number,
-      body: 'Auto-requesting reviews from non-collaborators: ' + non_collaborators.map((person) => '@' + person).join(' '),
+      body: comment_prefix + non_collaborators.map((person) => mention_prefix + person).join(' '),
       event: 'COMMENT',
     });
 

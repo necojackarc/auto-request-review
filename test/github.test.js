@@ -126,32 +126,49 @@ describe('github', function() {
   describe('assign_reviewers()', function() {
     const request_spy = sinon.spy();
     const mention_spy = sinon.spy();
-    const stub = sinon.stub();
+    const collab_stub = sinon.stub();
+    const paginate_stub = sinon.stub();
     const octokit = {
       pulls: {
         requestReviewers: request_spy,
         createReview: mention_spy,
+        listRequestedReviewers: sinon.spy(),
+        listReviews: sinon.spy(),
       },
       repos: {
-        checkCollaborator: stub,
+        checkCollaborator: collab_stub,
       },
+      paginate: paginate_stub,
     };
 
     beforeEach(function() {
       request_spy.resetHistory();
       mention_spy.resetHistory();
-      stub.reset();
+      collab_stub.reset();
+      paginate_stub.reset();
       github.getOctokit.resetBehavior();
       github.getOctokit.returns(octokit);
     });
 
     it('assigns collaborators and teams as reviewers', async function() {
-      stub.resolves({ status: 204 });
+      collab_stub.resolves({ status: 204 });
+      const requests_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listRequestedReviewers),
+        sinon.match.any
+      );
+      requests_call.resolves([]);
+      const reviews_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listReviews),
+        sinon.match.any
+      );
+      reviews_call.resolves([]);
 
       const reviewers = [ 'mario', 'princess-peach', 'team:koopa-troop' ];
       await assign_reviewers(reviewers);
 
-      expect(stub.calledTwice).to.be.true;
+      expect(collab_stub.calledTwice).to.be.true;
+      expect(requests_call.calledOnce).to.be.true;
+      expect(reviews_call.calledOnce).to.be.true;
 
       expect(request_spy.calledOnce).to.be.true;
       expect(request_spy.lastCall.args[0]).to.deep.equal({
@@ -171,12 +188,33 @@ describe('github', function() {
     });
 
     it('assigns non-collaborators as reviewers', async function() {
-      stub.rejects({ status: 404 });
+      collab_stub.rejects({ status: 404 });
+      const requests_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listRequestedReviewers),
+        sinon.match.any
+      );
+      requests_call.resolves([ 'mario' ]);
+      const reviews_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listReviews),
+        sinon.match.any
+      );
+      reviews_call.resolves([
+        {
+          body: 'Auto-requesting reviews from non-collaborators: @yoshi',
+          user: { login: 'bot' },
+        },
+        {
+          body: 'Looks good!',
+          user: { login: 'princess-peach' },
+        },
+      ]);
 
-      const reviewers = [ 'mario', 'princess-peach' ];
+      const reviewers = [ 'mario', 'princess-peach', 'luigi', 'yoshi' ];
       await assign_reviewers(reviewers);
 
-      expect(stub.calledTwice).to.be.true;
+      expect(collab_stub.calledOnce).to.be.true;
+      expect(requests_call.calledOnce).to.be.true;
+      expect(reviews_call.calledOnce).to.be.true;
 
       expect(request_spy.notCalled).to.be.true;
 
@@ -185,7 +223,7 @@ describe('github', function() {
         owner: 'necojackarc',
         pull_number: 18,
         repo: 'auto-request-review',
-        body: 'Auto-requesting reviews from non-collaborators: @mario @princess-peach',
+        body: 'Auto-requesting reviews from non-collaborators: @luigi',
         event: 'COMMENT',
       });
     });
