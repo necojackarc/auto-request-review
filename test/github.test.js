@@ -134,6 +134,7 @@ describe('github', function() {
         createReview: mention_spy,
         listRequestedReviewers: sinon.spy(),
         listReviews: sinon.spy(),
+        listReviewComments: sinon.spy(),
       },
       repos: {
         checkCollaborator: collab_stub,
@@ -162,6 +163,11 @@ describe('github', function() {
         sinon.match.any
       );
       reviews_call.resolves([]);
+      const review_comments_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listReviewComments),
+        sinon.match.any
+      );
+      review_comments_call.resolves([]);
 
       const reviewers = [ 'mario', 'princess-peach', 'team:koopa-troop' ];
       await assign_reviewers(reviewers);
@@ -169,6 +175,7 @@ describe('github', function() {
       expect(collab_stub.calledTwice).to.be.true;
       expect(requests_call.calledOnce).to.be.true;
       expect(reviews_call.calledOnce).to.be.true;
+      expect(review_comments_call.calledOnce).to.be.true;
 
       expect(request_spy.calledOnce).to.be.true;
       expect(request_spy.lastCall.args[0]).to.deep.equal({
@@ -203,6 +210,12 @@ describe('github', function() {
           body: 'Auto-requesting reviews from non-collaborators: @yoshi',
           user: { login: 'bot' },
         },
+      ]);
+      const review_comments_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listReviewComments),
+        sinon.match.any
+      );
+      review_comments_call.resolves([
         {
           body: 'Looks good!',
           user: { login: 'princess-peach' },
@@ -215,6 +228,7 @@ describe('github', function() {
       expect(collab_stub.calledOnce).to.be.true;
       expect(requests_call.calledOnce).to.be.true;
       expect(reviews_call.calledOnce).to.be.true;
+      expect(review_comments_call.calledOnce).to.be.true;
 
       expect(request_spy.notCalled).to.be.true;
 

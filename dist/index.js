@@ -16051,6 +16051,14 @@ async function assign_reviewers(reviewers) {
       pull_number: context.payload.pull_request.number,
     }
   );
+  const review_comments = await octokit.paginate(
+    octokit.pulls.listReviewComments,
+    {
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+    }
+  );
   // Only consider mentions starting with the prefix
   const already_mentioned = new Set(review_list.filter((review) => (
     review.body.startsWith(comment_prefix)
@@ -16063,9 +16071,12 @@ async function assign_reviewers(reviewers) {
   ).reduce(
     (mentions, new_mentions) => mentions.concat(new_mentions), []
   ));
-  // Only consider top-level reviews
+  // Review and review comments
   const already_reviewed = new Set(review_list.filter(
     (review) => review.user !== null
+  ).map((review) => review.user.login));
+  const already_commented_review = new Set(review_comments.filter(
+    (review) => review.user.login !== null
   ).map((review) => review.user.login));
 
   const [ collaborators, non_collaborators ] = partition(
@@ -16073,6 +16084,7 @@ async function assign_reviewers(reviewers) {
       !review_requested.has(person)
       && !already_mentioned.has(person)
       && !already_reviewed.has(person)
+      && !already_commented_review.has(person)
       && person !== context.payload.pull_request.user.login
     )).map(
       async (person) => ({
