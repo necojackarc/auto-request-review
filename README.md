@@ -170,6 +170,7 @@ files:
 
 options:
   ignore_draft: true
+  re_request_review: false
   ignored_keywords:
     - DO NOT REVIEW
   enable_group_assignment: false

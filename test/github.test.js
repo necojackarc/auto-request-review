@@ -125,19 +125,44 @@ describe('github', function() {
   });
 
   describe('assign_reviewers()', function() {
+    const config_path = 'test/assets/reviewers_no_re_request.yml';
+    const encoding = 'utf8';
+    const content = fs.readFileSync(config_path, encoding);
+
     const spy = sinon.spy();
+    const stub = sinon.stub();
     const octokit = {
       pulls: {
         requestReviewers: spy,
+        listRequestedReviewers: stub,
+      },
+      repos: {
+        getContent() {
+          return {
+            data: {
+              encoding,
+              content,
+            },
+          };
+        },
       },
     };
 
     beforeEach(function() {
+      core.getInput.withArgs('config').returns(config_path);
       github.getOctokit.resetBehavior();
       github.getOctokit.returns(octokit);
     });
 
     it('assigns reviewers', async function() {
+      // No existing reviewers
+      stub.returns({
+        data: {
+          requested_reviewers: [],
+          requested_teams: [],
+        }
+      });
+
       const reviewers = [ 'mario', 'princess-peach', 'team:koopa-troop' ];
       await assign_reviewers(reviewers);
 
@@ -153,6 +178,33 @@ describe('github', function() {
         team_reviewers: [
           'koopa-troop',
         ],
+      });
+    });
+
+    it('does not assign existing reviewers', async function() {
+      octokit.pulls.listRequestedReviewers = stub;
+      stub.returns({
+        data: {
+          requested_reviewers: [
+            { login: 'princess-peach' },
+          ],
+          requested_teams: [
+            { slug: 'koopa-troop' },
+          ],
+        }
+      });
+
+      const reviewers = [ 'mario', 'princess-peach', 'team:koopa-troop' ];
+      await assign_reviewers(reviewers);
+
+      expect(spy.lastCall.args[0]).to.deep.equal({
+        owner: 'necojackarc',
+        pull_number: 18,
+        repo: 'auto-request-review',
+        reviewers: [
+          'mario',
+        ],
+        team_reviewers: [],
       });
     });
   });

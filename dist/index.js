@@ -16004,9 +16004,18 @@ async function fetch_changed_files() {
 async function assign_reviewers(reviewers) {
   const context = get_context();
   const octokit = get_octokit();
+  const config = await fetch_config();
 
-  const [ teams_with_prefix, individuals ] = partition(reviewers, (reviewer) => reviewer.startsWith('team:'));
-  const teams = teams_with_prefix.map((team_with_prefix) => team_with_prefix.replace('team:', ''));
+  let [ teams_with_prefix, individuals ] = partition(reviewers, (reviewer) => reviewer.startsWith('team:'));
+  let teams = teams_with_prefix.map((team_with_prefix) => team_with_prefix.replace('team:', ''));
+
+  // When avoiding re-request, remove already requested reviewers so that
+  // existing reviews are not dismissed
+  if (config.options?.re_request_review === false) {
+    const { requested_individuals, requested_teams } = await get_reviewers();
+    individuals = individuals.filter((member) => !requested_individuals.includes(member));
+    teams = teams.filter((team) => !requested_teams.includes(team));
+  }
 
   return octokit.pulls.requestReviewers({
     owner: context.repo.owner,
@@ -16029,6 +16038,23 @@ async function get_team_members(team) {
   });
 
   return data?.map((member) => member.login);
+}
+
+// https://octokit.github.io/rest.js/v19#pulls-list-requested-reviewers
+async function get_reviewers() {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  const { data } = await octokit.pulls.listRequestedReviewers({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: context.payload.pull_request.number,
+  });
+
+  return {
+    requested_individuals: data?.requested_reviewers?.map((member) => member.login),
+    requested_teams: data?.requested_teams?.map((team) => team.slug),
+  };
 }
 
 /* Private */
