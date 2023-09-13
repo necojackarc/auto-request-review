@@ -124,7 +124,6 @@ let token_cache;
 let config_path_cache;
 let use_local_cache;
 let octokit_cache;
-let number_of_reviewers_cache;
 
 function get_context() {
   return context_cache || (context_cache = github.context);
@@ -143,7 +142,7 @@ function get_use_local() {
 }
 
 function get_number_of_reviewers() {
-  return number_of_reviewers_cache ?? (number_of_reviewers_cache = core.getInput('number_of_reviewers'));
+  return core.getInput('number_of_reviewers');
 }
 
 function get_octokit() {
