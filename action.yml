@@ -12,6 +12,9 @@ inputs:
   use_local:
     required: false
     default: 'false'
+  number_of_reviewers:
+    required: false
+    default: 2
 runs:
   using: 'node16'
   main: 'dist/index.js'
