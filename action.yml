@@ -15,6 +15,9 @@ inputs:
   number_of_reviewers:
     required: false
     default: 2
+outputs:
+  requested_reviewers:
+    description: 'A comma seperated list of github usernames'
 runs:
   using: 'node16'
   main: 'dist/index.js'

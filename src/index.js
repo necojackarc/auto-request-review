@@ -73,6 +73,7 @@ async function run() {
 
   core.info(`Requesting review to ${reviewers.join(', ')}`);
   await github.assign_reviewers(reviewers);
+  core.setOutput('requested_reviewers', reviewers.join(','));
 }
 
 module.exports = {
