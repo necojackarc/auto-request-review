@@ -15946,8 +15946,6 @@ async function fetch_config() {
   const useLocal = get_use_local();
   const numberOfReviewers = get_number_of_reviewers();
 
-  console.log('this is the number of reviewers requested: ' + numberOfReviewers);
-
   let content = '';
 
   if (!useLocal) {
@@ -15977,7 +15975,7 @@ async function fetch_config() {
   if (numberOfReviewers) {
     config.options.number_of_reviewers = numberOfReviewers;
   }
-  console.log(config)
+  
   return config;
 }
 
