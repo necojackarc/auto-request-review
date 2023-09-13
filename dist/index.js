@@ -15944,6 +15944,10 @@ async function fetch_config() {
   const octokit = get_octokit();
   const config_path = get_config_path();
   const useLocal = get_use_local();
+  const numberOfReviewers = get_number_of_reviewers();
+
+  console.log('this is the number of reviewers requested: ' + numberOfReviewers);
+
   let content = '';
 
   if (!useLocal) {
@@ -15969,7 +15973,12 @@ async function fetch_config() {
     }
   }
 
-  return yaml.parse(content);
+  let config = yaml.parse(content);
+  if (numberOfReviewers) {
+    config.options.number_of_reviewers = numberOfReviewers;
+  }
+  console.log(config)
+  return config;
 }
 
 async function fetch_changed_files() {
@@ -16039,6 +16048,10 @@ function get_config_path() {
 
 function get_use_local() {
   return use_local_cache ?? (use_local_cache = core.getInput('use_local') === 'true');
+}
+
+function get_number_of_reviewers() {
+  return core.getInput('number_of_reviewers');
 }
 
 function get_octokit() {
