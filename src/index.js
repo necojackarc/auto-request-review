@@ -46,14 +46,18 @@ async function run() {
 
   core.info('Identifying reviewers based on the changed files');
   const reviewers_based_on_files = identify_reviewers_by_changed_files({ config, changed_files, excludes: [ author ] });
+  core.info('Identified: ' + JSON.stringify(reviewers_based_on_files));
 
   core.info('Identifying reviewers based on the author');
   const reviewers_based_on_author = identify_reviewers_by_author({ config, author });
+  core.info('Identified: ' + JSON.stringify(reviewers_based_on_author));
 
   core.info('Adding other group members to reviewers if group assignment feature is on');
   const reviewers_from_same_teams = fetch_other_group_members({ config, author });
-
+  core.info('Added: ' + JSON.stringify(reviewers_from_same_teams));
+  
   let reviewers = [ ...new Set([ ...reviewers_based_on_files, ...reviewers_based_on_author, ...reviewers_from_same_teams ]) ];
+  core.info('Reviewers identified: ' + JSON.stringify(reviewers));
 
   if (reviewers.length === 0) {
     core.info('Matched no reviewers');
@@ -64,7 +68,7 @@ async function run() {
       return;
     }
 
-    core.info('Falling back to the default reviewers');
+    core.info('Falling back to the default reviewers: ' + JSON.stringify(default_reviewers));
     reviewers.push(...default_reviewers);
   }
 
