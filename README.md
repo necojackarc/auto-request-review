@@ -149,6 +149,8 @@ reviewers:
     designer_b:
       - lead_desinger # username
       - desinger_a # username
+    team:engineering-managers:
+      - engineers
 
 files:
   # Keys are glob expressions.

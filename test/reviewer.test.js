@@ -9,6 +9,8 @@ const {
   randomly_pick_reviewers,
 } = require('../src/reviewer');
 const { expect } = require('chai');
+const github = require('../src/github');
+const sinon = require('sinon');
 
 describe('reviewer', function() {
   describe('fetch_other_group_members()', function() {
@@ -136,36 +138,45 @@ describe('reviewer', function() {
           designers: [ 'mario', 'princess-peach', 'princess-daisy' ],
         },
         per_author: {
-          engineers: [ 'engineers', 'dr-mario' ],
-          designers: [ 'designers' ],
-          yoshi: [ 'mario', 'luige' ],
+          'engineers': [ 'engineers', 'dr-mario' ],
+          'designers': [ 'designers' ],
+          'yoshi': [ 'mario', 'luige' ],
+          'team:koopa-troop': [ 'mario' ],
         },
       },
     };
 
-    it('returns nothing when config does not have a "per-author" key', function() {
+    const stub = sinon.stub(github, 'get_team_members');
+    stub.withArgs('koopa-troop').returns([ 'bowser', 'king-boo', 'goomboss' ]);
+
+    it('returns nothing when config does not have a "per-author" key', async function() {
       const author = 'THIS DOES NOT MATTER';
-      expect(identify_reviewers_by_author({ config: { reviewers: {} }, author })).to.deep.equal([]);
+      expect(await identify_reviewers_by_author({ config: { reviewers: {} }, author })).to.deep.equal([]);
     });
 
-    it('returns nothing when the author does not exist in the "per-author" settings', function() {
+    it('returns nothing when the author does not exist in the "per-author" settings', async function() {
       const author = 'toad';
-      expect(identify_reviewers_by_author({ config, author })).to.deep.equal([]);
+      expect(await identify_reviewers_by_author({ config, author })).to.deep.equal([]);
     });
 
-    it('returns the reviewers for the author', function() {
+    it('returns the reviewers for the author', async function() {
       const author = 'yoshi';
-      expect(identify_reviewers_by_author({ config, author })).to.have.members([ 'mario', 'luige' ]);
+      expect(await identify_reviewers_by_author({ config, author })).to.have.members([ 'mario', 'luige' ]);
     });
 
-    it('works when a author setting is specified with a group', function() {
+    it('works when a author setting is specified with a group', async function() {
       const author = 'luigi';
-      expect(identify_reviewers_by_author({ config, author })).to.have.members([ 'mario', 'wario', 'waluigi', 'dr-mario' ]);
+      expect(await identify_reviewers_by_author({ config, author })).to.have.members([ 'mario', 'wario', 'waluigi', 'dr-mario' ]);
     });
 
-    it('works when the author belongs to more than one group', function() {
+    it('works when the author belongs to more than one group', async function() {
       const author = 'mario';
-      expect(identify_reviewers_by_author({ config, author })).to.have.members([ 'dr-mario', 'luigi', 'wario', 'waluigi', 'princess-peach', 'princess-daisy' ]);
+      expect(await identify_reviewers_by_author({ config, author })).to.have.members([ 'dr-mario', 'luigi', 'wario', 'waluigi', 'princess-peach', 'princess-daisy' ]);
+    });
+
+    it('works when gh team slug used for auther', async function() {
+      const author = 'bowser';
+      expect(await identify_reviewers_by_author({ config, author })).to.have.members([ 'mario' ]);
     });
   });
 
