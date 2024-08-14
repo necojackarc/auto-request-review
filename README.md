@@ -127,7 +127,6 @@ reviewers:
     repository-owners:
       - me # username
       - you # username
-      - team:owners # GitHub team
     core-contributors:
       - good-boy # username
       - good-girl # username
