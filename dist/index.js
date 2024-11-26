@@ -16011,15 +16011,21 @@ async function is_collaborator(person) {
     username: person,
   }).then(
     (response) => {
-      if (response.status === 204) {
+      core.info(`is_collaborator(${person}) recieved response code: ${response.status}`);
+      if (response.status == 204) {
+        core.info(`${person} is a collaborator`);
         return true;
       }
+      core.info(`Unhandled response code: ${response.status}, ${person} being treated as not a collaborator`);
       return false;
     },
     (error) => {
-      if (error.status === 404) {
+      core.info(`is_collaborator(${person}) recieved error code: ${error.status}`);
+      if (error.status == 404) {
+        core.info(`${person} isn't a collaborator`);
         return false;
       }
+      core.info(`Unhandled error code: ${error.status}`);
       throw error;
     }
   );
