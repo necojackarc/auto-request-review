@@ -3,6 +3,7 @@
 const core = require('@actions/core');
 const minimatch = require('minimatch');
 const sample_size = require('lodash/sampleSize');
+const github = require('./github'); // Don't destructure this object to stub with sinon in tests
 
 function fetch_other_group_members({ author, config }) {
   const DEFAULT_OPTIONS = {
@@ -65,11 +66,29 @@ function identify_reviewers_by_changed_files({ config, changed_files, excludes =
   return [ ...new Set(individuals) ].filter((reviewer) => !excludes.includes(reviewer));
 }
 
-function identify_reviewers_by_author({ config, 'author': specified_author }) {
+async function identify_reviewers_by_author({ config, 'author': specified_author }) {
   if (!(config.reviewers && config.reviewers.per_author)) {
     core.info('"per_author" is not set; returning no reviewers for the author.');
     return [];
   }
+
+  // async behavior must happen first
+  const team_member_promises = await Object.keys(config.reviewers.per_author).map(async (author) => {
+    if (author.startsWith('team:')) {
+      const team = author.replace('team:', '');
+
+      return {
+        author,
+        members: await github.get_team_members(team) || [],
+      };
+    }
+
+    return {
+      author,
+      members: [],
+    };
+  });
+  const team_members = await Promise.all(team_member_promises);
 
   // More than one author can be matched because groups are set as authors
   const matching_authors = Object.keys(config.reviewers.per_author).filter((author) => {
@@ -77,9 +96,16 @@ function identify_reviewers_by_author({ config, 'author': specified_author }) {
       return true;
     }
 
+    if (author.startsWith('team:')) {
+      const { members } = team_members.find((team) => team.author === author);
+      if (members.includes(specified_author)) {
+        return true;
+      }
+    }
+
     const individuals_in_author_setting = replace_groups_with_individuals({ reviewers: [ author ], config });
 
-    if (individuals_in_author_setting.includes(specified_author)) {
+    if (individuals_in_author_setting?.includes(specified_author)) {
       return true;
     }
 
