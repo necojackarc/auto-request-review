@@ -124,24 +124,61 @@ describe('github', function() {
   });
 
   describe('assign_reviewers()', function() {
-    const spy = sinon.spy();
+    const request_spy = sinon.spy();
+    const mention_spy = sinon.spy();
+    const collab_stub = sinon.stub();
+    const paginate_stub = sinon.stub();
     const octokit = {
       pulls: {
-        requestReviewers: spy,
+        requestReviewers: request_spy,
+        createReview: mention_spy,
+        listRequestedReviewers: sinon.spy(),
+        listReviews: sinon.spy(),
+        listReviewComments: sinon.spy(),
       },
+      repos: {
+        checkCollaborator: collab_stub,
+      },
+      paginate: paginate_stub,
     };
 
     beforeEach(function() {
+      request_spy.resetHistory();
+      mention_spy.resetHistory();
+      collab_stub.reset();
+      paginate_stub.reset();
       github.getOctokit.resetBehavior();
       github.getOctokit.returns(octokit);
     });
 
-    it('assigns reviewers', async function() {
+    it('assigns collaborators and teams as reviewers', async function() {
+      collab_stub.resolves({ status: 204 });
+      const requests_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listRequestedReviewers),
+        sinon.match.any
+      );
+      requests_call.resolves([]);
+      const reviews_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listReviews),
+        sinon.match.any
+      );
+      reviews_call.resolves([]);
+      const review_comments_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listReviewComments),
+        sinon.match.any
+      );
+      review_comments_call.resolves([]);
+
       const reviewers = [ 'mario', 'princess-peach', 'team:koopa-troop' ];
       await assign_reviewers(reviewers);
 
-      expect(spy.calledOnce).to.be.true;
-      expect(spy.lastCall.args[0]).to.deep.equal({
+      expect(collab_stub.calledTwice).to.be.true;
+      expect(requests_call.calledOnce).to.be.true;
+      expect(reviews_call.calledOnce).to.be.true;
+      expect(review_comments_call.calledOnce).to.be.true;
+
+      expect(request_spy.calledOnce).to.be.true;
+      expect(request_spy.lastCall.args[0]).to.deep.equal({
         owner: 'necojackarc',
         pull_number: 18,
         repo: 'auto-request-review',
@@ -152,6 +189,56 @@ describe('github', function() {
         team_reviewers: [
           'koopa-troop',
         ],
+      });
+
+      expect(mention_spy.notCalled).to.be.true;
+    });
+
+    it('assigns non-collaborators as reviewers', async function() {
+      collab_stub.rejects({ status: 404 });
+      const requests_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listRequestedReviewers),
+        sinon.match.any
+      );
+      requests_call.resolves([ 'mario' ]);
+      const reviews_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listReviews),
+        sinon.match.any
+      );
+      reviews_call.resolves([
+        {
+          body: 'Auto-requesting reviews from non-collaborators: @yoshi',
+          user: { login: 'bot' },
+        },
+      ]);
+      const review_comments_call = paginate_stub.withArgs(
+        sinon.match.same(octokit.pulls.listReviewComments),
+        sinon.match.any
+      );
+      review_comments_call.resolves([
+        {
+          body: 'Looks good!',
+          user: { login: 'princess-peach' },
+        },
+      ]);
+
+      const reviewers = [ 'mario', 'princess-peach', 'luigi', 'yoshi' ];
+      await assign_reviewers(reviewers);
+
+      expect(collab_stub.calledOnce).to.be.true;
+      expect(requests_call.calledOnce).to.be.true;
+      expect(reviews_call.calledOnce).to.be.true;
+      expect(review_comments_call.calledOnce).to.be.true;
+
+      expect(request_spy.notCalled).to.be.true;
+
+      expect(mention_spy.calledOnce).to.be.true;
+      expect(mention_spy.lastCall.args[0]).to.deep.equal({
+        owner: 'necojackarc',
+        pull_number: 18,
+        repo: 'auto-request-review',
+        body: 'Auto-requesting reviews from non-collaborators: @luigi',
+        event: 'COMMENT',
       });
     });
   });

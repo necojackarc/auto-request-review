@@ -16001,6 +16001,36 @@ async function fetch_changed_files() {
   return changed_files;
 }
 
+async function is_collaborator(person) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  return await octokit.repos.checkCollaborator({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    username: person,
+  }).then(
+    (response) => {
+      core.info(`is_collaborator(${person}) recieved response code: ${response.status}`);
+      if (response.status == 204) {
+        core.info(`${person} is a collaborator`);
+        return true;
+      }
+      core.info(`Unhandled response code: ${response.status}, ${person} being treated as not a collaborator`);
+      return false;
+    },
+    (error) => {
+      core.info(`is_collaborator(${person}) recieved error code: ${error.status}`);
+      if (error.status == 404) {
+        core.info(`${person} isn't a collaborator`);
+        return false;
+      }
+      core.info(`Unhandled error code: ${error.status}`);
+      throw error;
+    }
+  );
+}
+
 async function assign_reviewers(reviewers) {
   const context = get_context();
   const octokit = get_octokit();
@@ -16008,13 +16038,97 @@ async function assign_reviewers(reviewers) {
   const [ teams_with_prefix, individuals ] = partition(reviewers, (reviewer) => reviewer.startsWith('team:'));
   const teams = teams_with_prefix.map((team_with_prefix) => team_with_prefix.replace('team:', ''));
 
-  return octokit.pulls.requestReviewers({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    pull_number: context.payload.pull_request.number,
-    reviewers: individuals,
-    team_reviewers: teams,
-  });
+  const comment_prefix = 'Auto-requesting reviews from non-collaborators: ';
+  const mention_prefix = '@';
+
+  const review_requested = new Set(await octokit.paginate(
+    octokit.pulls.listRequestedReviewers,
+    {
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+    }
+  ));
+  const review_list = await octokit.paginate(
+    octokit.pulls.listReviews,
+    {
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+    }
+  );
+  const review_comments = await octokit.paginate(
+    octokit.pulls.listReviewComments,
+    {
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+    }
+  );
+  // Only consider mentions starting with the prefix
+  const already_mentioned = new Set(review_list.filter((review) => (
+    review.body.startsWith(comment_prefix)
+  )).map(
+    (review) => review.body.substring(comment_prefix.length).split(' ').filter(
+      (mention) => mention.startsWith(mention_prefix)
+    ).map(
+      (mention) => mention.substring(mention_prefix.length)
+    )
+  ).reduce(
+    (mentions, new_mentions) => mentions.concat(new_mentions), []
+  ));
+  // Review and review comments
+  const already_reviewed = new Set(review_list.filter(
+    (review) => review.user !== null
+  ).map((review) => review.user.login));
+  const already_commented_review = new Set(review_comments.filter(
+    (review) => review.user.login !== null
+  ).map((review) => review.user.login));
+
+  const [ collaborators, non_collaborators ] = partition(
+    await Promise.all(individuals.filter((person) => (
+      !review_requested.has(person)
+      && !already_mentioned.has(person)
+      && !already_reviewed.has(person)
+      && !already_commented_review.has(person)
+      && person !== context.payload.pull_request.user.login
+    )).map(
+      async (person) => ({
+        person: person,
+        status: await is_collaborator(person),
+      })
+    )),
+    ({ status }) => status
+  ).map(
+    (list) => list.map(
+      ({ person }) => person
+    )
+  );
+
+  const request_response = (collaborators.length === 0 && teams.length === 0)
+    ? null
+    : await octokit.pulls.requestReviewers({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+      reviewers: collaborators,
+      team_reviewers: teams,
+    });
+
+  const mention_response = non_collaborators.length === 0
+    ? null
+    : await octokit.pulls.createReview({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+      body: comment_prefix + non_collaborators.map((person) => mention_prefix + person).join(' '),
+      event: 'COMMENT',
+    });
+
+  return {
+    request_response: request_response,
+    mention_response: mention_response,
+  };
 }
 
 /* Private */
