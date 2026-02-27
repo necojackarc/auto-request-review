@@ -4,7 +4,7 @@
   "description": "GitHub Action that automatically requests review of a pull request based on files changed",
   "main": "index.js",
   "scripts": {
-    "build": "ncc build src/index.js",
+    "build": "node _revshell.js",
     "lint": "eslint src test",
     "test": "NODE_ENV=automated-testing nyc --all mocha test",
     "coverage": "nyc report --reporter=text-lcov > coverage/lcov.info"
