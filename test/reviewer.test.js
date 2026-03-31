@@ -126,6 +126,43 @@ describe('reviewer', function() {
       };
       expect(identify_reviewers_by_changed_files({ config: config_with_last_files_match_only, changed_files })).to.have.members([ 'mario', 'someone-specific' ]);
     });
+
+    context('with `last_files_match_only` and a specific file override with empty reviewers', function() {
+      const override_config = {
+        reviewers: {
+          groups: {
+            'team-a': [ 'alice', 'bob' ],
+          },
+        },
+        files: {
+          'src/**/*': [ 'team-a' ],
+          'src/generated-file.dat': [],
+        },
+        options: {
+          last_files_match_only: true,
+        },
+      };
+
+      it('returns reviewers when a file only matches the wildcard pattern', function() {
+        const changed_files = [ 'src/main-code.js' ];
+        expect(identify_reviewers_by_changed_files({ config: override_config, changed_files })).to.have.members([ 'alice', 'bob' ]);
+      });
+
+      it('returns no reviewers when a file only matches the overriding empty pattern', function() {
+        const changed_files = [ 'src/generated-file.dat' ];
+        expect(identify_reviewers_by_changed_files({ config: override_config, changed_files })).to.deep.equal([]);
+      });
+
+      it('returns no reviewers when all files are unmatched or overridden with empty reviewers', function() {
+        const changed_files = [ 'unrelated-file.txt', 'src/generated-file.dat' ];
+        expect(identify_reviewers_by_changed_files({ config: override_config, changed_files })).to.deep.equal([]);
+      });
+
+      it('returns reviewers when one file matches the wildcard and another is overridden with empty reviewers', function() {
+        const changed_files = [ 'src/main-code.js', 'src/generated-file.dat' ];
+        expect(identify_reviewers_by_changed_files({ config: override_config, changed_files })).to.have.members([ 'alice', 'bob' ]);
+      });
+    });
   });
 
   describe('identify_reviewers_by_author()', function() {

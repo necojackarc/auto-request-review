@@ -48,16 +48,28 @@ function identify_reviewers_by_changed_files({ config, changed_files, excludes =
     return [];
   }
 
-  const matching_reviewers = [];
+  let matching_reviewers;
 
-  Object.entries(config.files).forEach(([ glob_pattern, reviewers ]) => {
-    if (changed_files.some((changed_file) => minimatch(changed_file, glob_pattern))) {
-      if (last_files_match_only) {
-        matching_reviewers.length = 0; // clear previous matches
+  if (last_files_match_only) {
+    const file_patterns = Object.entries(config.files);
+    const per_file_reviewers = changed_files.flatMap((changed_file) => {
+      let last_matching_reviewers = null;
+      file_patterns.forEach(([ glob_pattern, reviewers ]) => {
+        if (minimatch(changed_file, glob_pattern)) {
+          last_matching_reviewers = reviewers;
+        }
+      });
+      return last_matching_reviewers || [];
+    });
+    matching_reviewers = per_file_reviewers;
+  } else {
+    matching_reviewers = [];
+    Object.entries(config.files).forEach(([ glob_pattern, reviewers ]) => {
+      if (changed_files.some((changed_file) => minimatch(changed_file, glob_pattern))) {
+        matching_reviewers.push(...reviewers);
       }
-      matching_reviewers.push(...reviewers);
-    }
-  });
+    });
+  }
 
   const individuals = replace_groups_with_individuals({ reviewers: matching_reviewers, config });
 
