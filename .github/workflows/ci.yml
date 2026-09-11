@@ -3,8 +3,11 @@ name: CI
 on:
   push:
     branches: [master]
-  pull_request_target:
+  pull_request:
     branches: ['**']
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -17,12 +20,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
-    - run: |
-        git fetch origin $REF
-        git checkout $REF
-      env:
-        REF: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
@@ -46,6 +43,7 @@ jobs:
         npm run coverage
 
     - name: Send test coverage report to Coveralls
+      if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
