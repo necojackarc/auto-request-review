@@ -42,7 +42,7 @@ async function fetch_config() {
   let content = '';
 
   if (!useLocal) {
-    const { data: response_body } = await octokit.repos.getContent({
+    const { data: response_body } = await octokit.rest.repos.getContent({
       owner: context.repo.owner,
       repo: context.repo.repo,
       path: config_path,
@@ -80,7 +80,7 @@ async function fetch_changed_files() {
   do {
     page += 1;
 
-    const { data: response_body } = await octokit.pulls.listFiles({
+    const { data: response_body } = await octokit.rest.pulls.listFiles({
       owner: context.repo.owner,
       repo: context.repo.repo,
       pull_number: context.payload.pull_request.number,
@@ -103,7 +103,7 @@ async function assign_reviewers(reviewers) {
   const [ teams_with_prefix, individuals ] = partition(reviewers, (reviewer) => reviewer.startsWith('team:'));
   const teams = teams_with_prefix.map((team_with_prefix) => team_with_prefix.replace('team:', ''));
 
-  return octokit.pulls.requestReviewers({
+  return octokit.rest.pulls.requestReviewers({
     owner: context.repo.owner,
     repo: context.repo.repo,
     pull_number: context.payload.pull_request.number,
