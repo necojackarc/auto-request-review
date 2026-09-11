@@ -13,7 +13,7 @@
   "author": "Taka <necojackarc@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.9.1",
+    "@actions/core": "^1.11.1",
     "@actions/github": "^8.0.1",
     "lodash": "^4.18.1",
     "minimatch": "^3.1.5",
@@ -24,7 +24,7 @@
     "chai": "^4.3.6",
     "eslint": "^8.9.0",
     "mocha": "^11.1.0",
-    "nyc": "^15.1.0",
+    "nyc": "^18.0.0",
     "sinon": "^13.0.1"
   },
   "nyc": {
