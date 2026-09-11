@@ -210,6 +210,30 @@ jobs:
           use_local: true
 ```
 
+### Manually requiring a review
+
+Automatic reviewer assignment based on file patterns or authors can't cover every case. Anyone with `write` or `admin` access to the repository can additionally require an approving review from a specific person by posting a pull request comment:
+
+```
+require-review: @princess-peach
+```
+
+Once posted, this action fails (and keeps failing on every subsequent run) until `@princess-peach` submits an approving review on the pull request. A directive posted by someone without `write`/`admin` access is ignored. Required reviewers and their approval status are recomputed from the pull request's current comments and reviews on every run — nothing is persisted, so editing or deleting the directive comment lifts the requirement.
+
+To have this action re-check the requirement as soon as the named reviewer approves, add `pull_request_review` to your workflow's trigger:
+
+```yaml
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+```
+
+For the check to actually block merging, mark this action's job as a required status check in your repository's branch protection settings.
+
 ### (Optional) GitHub Personal Access Token
 
 When the default `GITHUB_TOKEN` doesn't have the necessary permissions, you need to [create a new GitHub personal access token (PAT)](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token).

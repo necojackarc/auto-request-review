@@ -38617,6 +38617,26 @@ function get_pull_request() {
   return new PullRequest(context.payload.pull_request);
 }
 
+function get_pull_request_number() {
+  const context = get_context();
+
+  if (context.payload.pull_request) {
+    return context.payload.pull_request.number;
+  }
+
+  if (context.payload.issue && context.payload.issue.pull_request) {
+    return context.payload.issue.number;
+  }
+
+  return undefined;
+}
+
+function has_full_pull_request_payload() {
+  const context = get_context();
+
+  return Boolean(context.payload.pull_request);
+}
+
 async function fetch_config() {
   const context = get_context();
   const octokit = get_octokit();
@@ -38695,6 +38715,79 @@ async function assign_reviewers(reviewers) {
   });
 }
 
+async function list_comments() {
+  const context = get_context();
+  const octokit = get_octokit();
+  const pull_request_number = get_pull_request_number();
+
+  const comments = [];
+
+  const per_page = 100;
+  let page = 0;
+  let number_of_comments_in_current_page;
+
+  do {
+    page += 1;
+
+    const { data: response_body } = await octokit.rest.issues.listComments({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: pull_request_number,
+      page,
+      per_page,
+    });
+
+    number_of_comments_in_current_page = response_body.length;
+    comments.push(...response_body);
+
+  } while (number_of_comments_in_current_page === per_page);
+
+  return comments;
+}
+
+async function list_reviews() {
+  const context = get_context();
+  const octokit = get_octokit();
+  const pull_request_number = get_pull_request_number();
+
+  const reviews = [];
+
+  const per_page = 100;
+  let page = 0;
+  let number_of_reviews_in_current_page;
+
+  do {
+    page += 1;
+
+    const { data: response_body } = await octokit.rest.pulls.listReviews({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: pull_request_number,
+      page,
+      per_page,
+    });
+
+    number_of_reviews_in_current_page = response_body.length;
+    reviews.push(...response_body);
+
+  } while (number_of_reviews_in_current_page === per_page);
+
+  return reviews;
+}
+
+async function get_permission_level(username) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  const { data: response_body } = await octokit.rest.repos.getCollaboratorPermissionLevel({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    username,
+  });
+
+  return response_body.permission;
+}
+
 /* Private */
 
 let context_cache;
@@ -38737,9 +38830,14 @@ function clear_cache() {
 
 module.exports = {
   get_pull_request,
+  get_pull_request_number,
+  has_full_pull_request_payload,
   fetch_config,
   fetch_changed_files,
   assign_reviewers,
+  list_comments,
+  list_reviews,
+  get_permission_level,
   clear_cache,
 };
 
@@ -38765,7 +38863,29 @@ const {
   randomly_pick_reviewers,
 } = __nccwpck_require__(6230);
 
+const {
+  parse_required_reviewers,
+  is_authorized_permission,
+  identify_approved_reviewers,
+  identify_missing_reviewers,
+} = __nccwpck_require__(3049);
+
 async function run() {
+  const pull_request_number = github.get_pull_request_number();
+
+  if (pull_request_number === undefined) {
+    core.info('The comment is not on a pull request; terminating the process');
+    return;
+  }
+
+  if (github.has_full_pull_request_payload()) {
+    await auto_assign_reviewers();
+  }
+
+  await enforce_required_reviews();
+}
+
+async function auto_assign_reviewers() {
   core.info('Fetching configuration file from the source branch');
 
   let config;
@@ -38827,6 +38947,47 @@ async function run() {
   await github.assign_reviewers(reviewers);
 }
 
+async function enforce_required_reviews() {
+  core.info('Checking for "require-review" directives in the pull request comments');
+
+  const comments = await github.list_comments();
+  const required_reviewers = new Set();
+
+  for (const comment of comments) {
+    const usernames = parse_required_reviewers(comment.body);
+
+    if (usernames.length === 0) {
+      continue;
+    }
+
+    const permission = await github.get_permission_level(comment.user.login);
+
+    if (!is_authorized_permission(permission)) {
+      core.info(`Ignoring "require-review" directive from @${comment.user.login}; insufficient permission`);
+      continue;
+    }
+
+    usernames.forEach((username) => required_reviewers.add(username));
+  }
+
+  if (required_reviewers.size === 0) {
+    return;
+  }
+
+  core.info(`Required reviewer(s) by directive: ${[ ...required_reviewers ].join(', ')}`);
+
+  const reviews = await github.list_reviews();
+  const approved_reviewers = identify_approved_reviewers(reviews);
+  const missing_reviewers = identify_missing_reviewers({
+    required_reviewers: [ ...required_reviewers ],
+    approved_reviewers,
+  });
+
+  if (missing_reviewers.length > 0) {
+    core.setFailed(`Missing required approving review(s) from: ${missing_reviewers.join(', ')}`);
+  }
+}
+
 module.exports = {
   run,
 };
@@ -38835,6 +38996,49 @@ module.exports = {
 if (process.env.NODE_ENV !== 'automated-testing') {
   run().catch((error) => core.setFailed(error));
 }
+
+
+/***/ }),
+
+/***/ 3049:
+/***/ ((module) => {
+
+"use strict";
+
+
+const DIRECTIVE_PATTERN = /require-review:\s*@([\w-]+)/gi;
+const AUTHORIZED_PERMISSIONS = [ 'admin', 'write' ];
+
+function parse_required_reviewers(comment_body = '') {
+  return [ ...comment_body.matchAll(DIRECTIVE_PATTERN) ].map((match) => match[1]);
+}
+
+function is_authorized_permission(permission) {
+  return AUTHORIZED_PERMISSIONS.includes(permission);
+}
+
+function identify_approved_reviewers(reviews) {
+  const latest_state_by_reviewer = new Map();
+
+  reviews.forEach((review) => {
+    latest_state_by_reviewer.set(review.user.login, review.state);
+  });
+
+  return [ ...latest_state_by_reviewer.keys() ].filter((reviewer) =>
+    latest_state_by_reviewer.get(reviewer) === 'APPROVED'
+  );
+}
+
+function identify_missing_reviewers({ required_reviewers, approved_reviewers }) {
+  return required_reviewers.filter((reviewer) => !approved_reviewers.includes(reviewer));
+}
+
+module.exports = {
+  parse_required_reviewers,
+  is_authorized_permission,
+  identify_approved_reviewers,
+  identify_missing_reviewers,
+};
 
 
 /***/ }),

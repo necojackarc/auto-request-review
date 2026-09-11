@@ -10,9 +10,14 @@ const { expect } = require('chai');
 
 const {
   get_pull_request,
+  get_pull_request_number,
+  has_full_pull_request_payload,
   fetch_config,
   fetch_changed_files,
   assign_reviewers,
+  list_comments,
+  list_reviews,
+  get_permission_level,
   clear_cache,
 } = require('../src/github');
 
@@ -40,6 +45,43 @@ describe('github', function() {
       expect(pull_request.title).to.equal('Extract GitHub related functions into a github module');
       expect(pull_request.author).to.equal('necojackarc');
       expect(pull_request.is_draft).to.be.false;
+    });
+  });
+
+  describe('get_pull_request_number()', function() {
+    it('returns the number from the "pull_request" payload when present', function() {
+      expect(get_pull_request_number()).to.equal(18);
+    });
+
+    it('returns the number from the "issue" payload when it is a pull request comment', function() {
+      github.context = ContextStub.build({
+        payload: {
+          issue: { number: 42, pull_request: { url: 'https://api.github.com/repos/necojackarc/auto-request-review/pulls/42' } },
+        },
+      });
+
+      expect(get_pull_request_number()).to.equal(42);
+    });
+
+    it('returns undefined when the "issue" payload is not a pull request', function() {
+      github.context = ContextStub.build({
+        payload: {
+          issue: { number: 42 },
+        },
+      });
+
+      expect(get_pull_request_number()).to.be.undefined;
+    });
+  });
+
+  describe('has_full_pull_request_payload()', function() {
+    it('returns true when the "pull_request" payload is present', function() {
+      expect(has_full_pull_request_payload()).to.be.true;
+    });
+
+    it('returns false when the "pull_request" payload is absent', function() {
+      github.context = ContextStub.build({ payload: { issue: { number: 42 } } });
+      expect(has_full_pull_request_payload()).to.be.false;
     });
   });
 
@@ -158,6 +200,118 @@ describe('github', function() {
         team_reviewers: [
           'koopa-troop',
         ],
+      });
+    });
+  });
+
+  describe('list_comments()', function() {
+    const stub = sinon.stub();
+    const octokit = {
+      rest: {
+        issues: {
+          listComments: stub,
+        },
+      },
+    };
+
+    beforeEach(function() {
+      github.getOctokit.returns(octokit);
+    });
+
+    it('lists comments on the pull request', async function() {
+      stub.returns({
+        data: [
+          { body: 'require-review: @toad', user: { login: 'princess-peach' } },
+        ],
+      });
+
+      const actual = await list_comments();
+      expect(actual).to.deep.equal([
+        { body: 'require-review: @toad', user: { login: 'princess-peach' } },
+      ]);
+      expect(stub.lastCall.args[0]).to.deep.equal({
+        owner: 'necojackarc',
+        repo: 'auto-request-review',
+        issue_number: 18,
+        page: 1,
+        per_page: 100,
+      });
+    });
+
+    it('lists comments through the last page', async function() {
+      const comments = [];
+      for (let index = 0; index < 222; index += 1) {
+        comments.push({ body: `comment ${index}`, user: { login: 'mario' } });
+      }
+
+      const page_size = 100;
+      stub.onCall(1).returns({ data: comments.slice(0, page_size) });
+      stub.onCall(2).returns({ data: comments.slice(page_size, page_size * 2) });
+      stub.onCall(3).returns({ data: comments.slice(page_size * 2) });
+
+      const actual = await list_comments();
+      expect(actual).to.have.lengthOf(222);
+    });
+  });
+
+  describe('list_reviews()', function() {
+    const stub = sinon.stub();
+    const octokit = {
+      rest: {
+        pulls: {
+          listReviews: stub,
+        },
+      },
+    };
+
+    beforeEach(function() {
+      github.getOctokit.returns(octokit);
+    });
+
+    it('lists reviews on the pull request', async function() {
+      stub.returns({
+        data: [
+          { user: { login: 'princess-peach' }, state: 'APPROVED' },
+        ],
+      });
+
+      const actual = await list_reviews();
+      expect(actual).to.deep.equal([
+        { user: { login: 'princess-peach' }, state: 'APPROVED' },
+      ]);
+      expect(stub.lastCall.args[0]).to.deep.equal({
+        owner: 'necojackarc',
+        repo: 'auto-request-review',
+        pull_number: 18,
+        page: 1,
+        per_page: 100,
+      });
+    });
+  });
+
+  describe('get_permission_level()', function() {
+    const stub = sinon.stub();
+    const octokit = {
+      rest: {
+        repos: {
+          getCollaboratorPermissionLevel: stub,
+        },
+      },
+    };
+
+    beforeEach(function() {
+      github.getOctokit.returns(octokit);
+    });
+
+    it('returns the permission level for the given user', async function() {
+      stub.returns({ data: { permission: 'write' } });
+
+      const actual = await get_permission_level('princess-peach');
+      expect(actual).to.equal('write');
+      expect(stub.lastCall.args[0]).to.deep.equal({
+        owner: 'necojackarc',
+        repo: 'auto-request-review',
+        username: 'princess-peach',
       });
     });
   });

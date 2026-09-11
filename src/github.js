@@ -34,6 +34,26 @@ function get_pull_request() {
   return new PullRequest(context.payload.pull_request);
 }
 
+function get_pull_request_number() {
+  const context = get_context();
+
+  if (context.payload.pull_request) {
+    return context.payload.pull_request.number;
+  }
+
+  if (context.payload.issue && context.payload.issue.pull_request) {
+    return context.payload.issue.number;
+  }
+
+  return undefined;
+}
+
+function has_full_pull_request_payload() {
+  const context = get_context();
+
+  return Boolean(context.payload.pull_request);
+}
+
 async function fetch_config() {
   const context = get_context();
   const octokit = get_octokit();
@@ -112,6 +132,79 @@ async function assign_reviewers(reviewers) {
   });
 }
 
+async function list_comments() {
+  const context = get_context();
+  const octokit = get_octokit();
+  const pull_request_number = get_pull_request_number();
+
+  const comments = [];
+
+  const per_page = 100;
+  let page = 0;
+  let number_of_comments_in_current_page;
+
+  do {
+    page += 1;
+
+    const { data: response_body } = await octokit.rest.issues.listComments({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: pull_request_number,
+      page,
+      per_page,
+    });
+
+    number_of_comments_in_current_page = response_body.length;
+    comments.push(...response_body);
+
+  } while (number_of_comments_in_current_page === per_page);
+
+  return comments;
+}
+
+async function list_reviews() {
+  const context = get_context();
+  const octokit = get_octokit();
+  const pull_request_number = get_pull_request_number();
+
+  const reviews = [];
+
+  const per_page = 100;
+  let page = 0;
+  let number_of_reviews_in_current_page;
+
+  do {
+    page += 1;
+
+    const { data: response_body } = await octokit.rest.pulls.listReviews({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: pull_request_number,
+      page,
+      per_page,
+    });
+
+    number_of_reviews_in_current_page = response_body.length;
+    reviews.push(...response_body);
+
+  } while (number_of_reviews_in_current_page === per_page);
+
+  return reviews;
+}
+
+async function get_permission_level(username) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  const { data: response_body } = await octokit.rest.repos.getCollaboratorPermissionLevel({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    username,
+  });
+
+  return response_body.permission;
+}
+
 /* Private */
 
 let context_cache;
@@ -154,8 +247,13 @@ function clear_cache() {
 
 module.exports = {
   get_pull_request,
+  get_pull_request_number,
+  has_full_pull_request_payload,
   fetch_config,
   fetch_changed_files,
   assign_reviewers,
+  list_comments,
+  list_reviews,
+  get_permission_level,
   clear_cache,
 };

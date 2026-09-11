@@ -13,7 +13,29 @@ const {
   randomly_pick_reviewers,
 } = require('./reviewer');
 
+const {
+  parse_required_reviewers,
+  is_authorized_permission,
+  identify_approved_reviewers,
+  identify_missing_reviewers,
+} = require('./require_review');
+
 async function run() {
+  const pull_request_number = github.get_pull_request_number();
+
+  if (pull_request_number === undefined) {
+    core.info('The comment is not on a pull request; terminating the process');
+    return;
+  }
+
+  if (github.has_full_pull_request_payload()) {
+    await auto_assign_reviewers();
+  }
+
+  await enforce_required_reviews();
+}
+
+async function auto_assign_reviewers() {
   core.info('Fetching configuration file from the source branch');
 
   let config;
@@ -73,6 +95,47 @@ async function run() {
 
   core.info(`Requesting review to ${reviewers.join(', ')}`);
   await github.assign_reviewers(reviewers);
+}
+
+async function enforce_required_reviews() {
+  core.info('Checking for "require-review" directives in the pull request comments');
+
+  const comments = await github.list_comments();
+  const required_reviewers = new Set();
+
+  for (const comment of comments) {
+    const usernames = parse_required_reviewers(comment.body);
+
+    if (usernames.length === 0) {
+      continue;
+    }
+
+    const permission = await github.get_permission_level(comment.user.login);
+
+    if (!is_authorized_permission(permission)) {
+      core.info(`Ignoring "require-review" directive from @${comment.user.login}; insufficient permission`);
+      continue;
+    }
+
+    usernames.forEach((username) => required_reviewers.add(username));
+  }
+
+  if (required_reviewers.size === 0) {
+    return;
+  }
+
+  core.info(`Required reviewer(s) by directive: ${[ ...required_reviewers ].join(', ')}`);
+
+  const reviews = await github.list_reviews();
+  const approved_reviewers = identify_approved_reviewers(reviews);
+  const missing_reviewers = identify_missing_reviewers({
+    required_reviewers: [ ...required_reviewers ],
+    approved_reviewers,
+  });
+
+  if (missing_reviewers.length > 0) {
+    core.setFailed(`Missing required approving review(s) from: ${missing_reviewers.join(', ')}`);
+  }
 }
 
 module.exports = {
