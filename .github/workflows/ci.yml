@@ -36,6 +36,13 @@ jobs:
         git status # display the results for debugging
         test -z "$(git status --porcelain)"
 
+    - name: TEMP debug upload dist
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-debug
+        path: dist/index.js
+
     - name: Run linter and tests
       run: |
         npm run lint
