@@ -14,6 +14,7 @@ const {
   fetch_changed_files,
   assign_reviewers,
   clear_cache,
+  get_team_members,
 } = require('../src/github');
 
 describe('github', function() {
@@ -153,6 +154,40 @@ describe('github', function() {
           'koopa-troop',
         ],
       });
+    });
+  });
+
+  describe('get_team_members()', function() {
+    const stub = sinon.stub();
+    const octokit = {
+      teams: {
+        listMembersInOrg: stub,
+      },
+    };
+
+    beforeEach(function() {
+      github.getOctokit.resetBehavior();
+      github.getOctokit.returns(octokit);
+    });
+
+    it('gets team members', async function() {
+      stub.returns({
+        data: [
+          { login: 'bowser' },
+          { login: 'king-boo' },
+          { login: 'goomboss' },
+        ],
+      });
+
+      const team = 'koopa-troop';
+      const actual = await get_team_members(team);
+
+      expect(stub.calledOnce).to.be.true;
+      expect(stub.lastCall.args[0]).to.deep.equal({
+        org: 'necojackarc',
+        team_slug: 'koopa-troop',
+      });
+      expect(actual).to.deep.equal([ 'bowser', 'king-boo', 'goomboss' ]);
     });
   });
 });

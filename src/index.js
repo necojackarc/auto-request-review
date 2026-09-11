@@ -48,7 +48,7 @@ async function run() {
   const reviewers_based_on_files = identify_reviewers_by_changed_files({ config, changed_files, excludes: [ author ] });
 
   core.info('Identifying reviewers based on the author');
-  const reviewers_based_on_author = identify_reviewers_by_author({ config, author });
+  const reviewers_based_on_author = await identify_reviewers_by_author({ config, author });
 
   core.info('Adding other group members to reviewers if group assignment feature is on');
   const reviewers_from_same_teams = fetch_other_group_members({ config, author });
