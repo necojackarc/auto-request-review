@@ -21,6 +21,8 @@ describe('index', function() {
       sinon.stub(github, 'list_comments').returns([]);
       sinon.stub(github, 'list_reviews').returns([]);
       sinon.stub(github, 'get_permission_level');
+      sinon.stub(github, 'get_pull_request_head_sha').returns('deadbeef');
+      sinon.stub(github, 'create_check_run');
     });
 
     afterEach(function() {
@@ -33,6 +35,8 @@ describe('index', function() {
       github.list_comments.restore();
       github.list_reviews.restore();
       github.get_permission_level.restore();
+      github.get_pull_request_head_sha.restore();
+      github.create_check_run.restore();
     });
 
     it('requests review based on files changed', async function() {
@@ -328,6 +332,13 @@ describe('index', function() {
       expect(core.setFailed.calledOnce).to.be.true;
       expect(core.setFailed.lastCall.args[0]).to.include('princess-peach');
 
+      expect(github.create_check_run.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
+        head_sha: 'deadbeef',
+        conclusion: 'failure',
+        summary: 'Missing required approving review(s) from: princess-peach',
+      });
+
       core.setFailed.restore();
     });
 
@@ -351,6 +362,13 @@ describe('index', function() {
 
       expect(core.setFailed.called).to.be.false;
 
+      expect(github.create_check_run.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
+        head_sha: 'deadbeef',
+        conclusion: 'success',
+        summary: 'All required reviewer(s) have approved: princess-peach',
+      });
+
       core.setFailed.restore();
     });
 
@@ -371,6 +389,7 @@ describe('index', function() {
 
       expect(github.list_reviews.called).to.be.false;
       expect(core.setFailed.called).to.be.false;
+      expect(github.create_check_run.called).to.be.false;
 
       core.setFailed.restore();
     });

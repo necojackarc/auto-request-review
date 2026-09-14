@@ -18,6 +18,8 @@ const {
   list_comments,
   list_reviews,
   get_permission_level,
+  get_pull_request_head_sha,
+  create_check_run,
   clear_cache,
 } = require('../src/github');
 
@@ -312,6 +314,80 @@ describe('github', function() {
         owner: 'necojackarc',
         repo: 'auto-request-review',
         username: 'princess-peach',
+      });
+    });
+  });
+
+  describe('get_pull_request_head_sha()', function() {
+    it('returns the sha from the "pull_request" payload when present', async function() {
+      // See the default values of ContextStub
+      expect(await get_pull_request_head_sha()).to.equal('8654739977cb347ee1d2c68ccf2cc2c6007e9a0d');
+    });
+
+    it('fetches the pull request to get its head sha when the payload has no "pull_request"', async function() {
+      github.context = ContextStub.build({
+        payload: {
+          issue: { number: 42, pull_request: { url: 'https://api.github.com/repos/necojackarc/auto-request-review/pulls/42' } },
+        },
+      });
+
+      const stub = sinon.stub().returns({ data: { head: { sha: 'cafef00d' } } });
+      github.getOctokit.returns({ rest: { pulls: { get: stub } } });
+
+      expect(await get_pull_request_head_sha()).to.equal('cafef00d');
+      expect(stub.lastCall.args[0]).to.deep.equal({
+        owner: 'necojackarc',
+        repo: 'auto-request-review',
+        pull_number: 42,
+      });
+    });
+  });
+
+  describe('create_check_run()', function() {
+    const stub = sinon.stub();
+    const octokit = {
+      rest: {
+        checks: {
+          create: stub,
+        },
+      },
+    };
+
+    beforeEach(function() {
+      github.getOctokit.returns(octokit);
+    });
+
+    it('creates a failing check run on the given sha', async function() {
+      await create_check_run({ head_sha: 'deadbeef', conclusion: 'failure', summary: 'Missing review(s)' });
+
+      expect(stub.lastCall.args[0]).to.deep.equal({
+        owner: 'necojackarc',
+        repo: 'auto-request-review',
+        name: 'require-review',
+        head_sha: 'deadbeef',
+        status: 'completed',
+        conclusion: 'failure',
+        output: {
+          title: 'Missing required approving review(s)',
+          summary: 'Missing review(s)',
+        },
+      });
+    });
+
+    it('creates a passing check run on the given sha', async function() {
+      await create_check_run({ head_sha: 'deadbeef', conclusion: 'success', summary: 'All approved' });
+
+      expect(stub.lastCall.args[0]).to.deep.equal({
+        owner: 'necojackarc',
+        repo: 'auto-request-review',
+        name: 'require-review',
+        head_sha: 'deadbeef',
+        status: 'completed',
+        conclusion: 'success',
+        output: {
+          title: 'All required reviews are approved',
+          summary: 'All approved',
+        },
       });
     });
   });

@@ -38788,6 +38788,43 @@ async function get_permission_level(username) {
   return response_body.permission;
 }
 
+async function get_pull_request_head_sha() {
+  const context = get_context();
+
+  if (context.payload.pull_request) {
+    return context.payload.pull_request.head.sha;
+  }
+
+  const octokit = get_octokit();
+  const pull_request_number = get_pull_request_number();
+
+  const { data: response_body } = await octokit.rest.pulls.get({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: pull_request_number,
+  });
+
+  return response_body.head.sha;
+}
+
+async function create_check_run({ head_sha, conclusion, summary }) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  return octokit.rest.checks.create({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    name: 'require-review',
+    head_sha,
+    status: 'completed',
+    conclusion,
+    output: {
+      title: conclusion === 'success' ? 'All required reviews are approved' : 'Missing required approving review(s)',
+      summary,
+    },
+  });
+}
+
 /* Private */
 
 let context_cache;
@@ -38838,6 +38875,8 @@ module.exports = {
   list_comments,
   list_reviews,
   get_permission_level,
+  get_pull_request_head_sha,
+  create_check_run,
   clear_cache,
 };
 
@@ -38983,9 +39022,23 @@ async function enforce_required_reviews() {
     approved_reviewers,
   });
 
+  // Explicitly attach a check run to the pull request's head commit, since a job triggered by
+  // "issue_comment" has no commit sha in its event payload and would otherwise report only to
+  // the Actions tab, invisible to the pull request and to required status checks.
+  const head_sha = await github.get_pull_request_head_sha();
+
   if (missing_reviewers.length > 0) {
-    core.setFailed(`Missing required approving review(s) from: ${missing_reviewers.join(', ')}`);
+    const summary = `Missing required approving review(s) from: ${missing_reviewers.join(', ')}`;
+    await github.create_check_run({ head_sha, conclusion: 'failure', summary });
+    core.setFailed(summary);
+    return;
   }
+
+  await github.create_check_run({
+    head_sha,
+    conclusion: 'success',
+    summary: `All required reviewer(s) have approved: ${[ ...required_reviewers ].join(', ')}`,
+  });
 }
 
 module.exports = {

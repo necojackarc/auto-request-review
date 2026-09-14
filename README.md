@@ -232,7 +232,7 @@ on:
     types: [created]
 ```
 
-For the check to actually block merging, mark this action's job as a required status check in your repository's branch protection settings.
+This posts its result as a separate check named **`require-review`**, distinct from this action's own job status. A job triggered by an `issue_comment` event has no commit associated with it in the event payload, so this action explicitly attaches the `require-review` check to the pull request's current head commit via the Checks API (needs the default `GITHUB_TOKEN`'s `checks: write` permission, granted by default for same-repo workflows) rather than relying on the job's own pass/fail status. For the check to actually block merging, add **`require-review`** as a required status check in your repository's branch protection settings.
 
 ### (Optional) GitHub Personal Access Token
 

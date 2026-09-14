@@ -205,6 +205,43 @@ async function get_permission_level(username) {
   return response_body.permission;
 }
 
+async function get_pull_request_head_sha() {
+  const context = get_context();
+
+  if (context.payload.pull_request) {
+    return context.payload.pull_request.head.sha;
+  }
+
+  const octokit = get_octokit();
+  const pull_request_number = get_pull_request_number();
+
+  const { data: response_body } = await octokit.rest.pulls.get({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: pull_request_number,
+  });
+
+  return response_body.head.sha;
+}
+
+async function create_check_run({ head_sha, conclusion, summary }) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  return octokit.rest.checks.create({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    name: 'require-review',
+    head_sha,
+    status: 'completed',
+    conclusion,
+    output: {
+      title: conclusion === 'success' ? 'All required reviews are approved' : 'Missing required approving review(s)',
+      summary,
+    },
+  });
+}
+
 /* Private */
 
 let context_cache;
@@ -255,5 +292,7 @@ module.exports = {
   list_comments,
   list_reviews,
   get_permission_level,
+  get_pull_request_head_sha,
+  create_check_run,
   clear_cache,
 };
