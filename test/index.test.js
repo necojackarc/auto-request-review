@@ -1,5 +1,6 @@
 'use strict';
 
+const core = require('@actions/core');
 const github = require('../src/github');
 const sinon = require('sinon');
 const { expect } = require('chai');
@@ -12,16 +13,30 @@ describe('index', function() {
       github.clear_cache();
 
       sinon.stub(github, 'get_pull_request');
+      sinon.stub(github, 'get_pull_request_number').returns(1);
+      sinon.stub(github, 'has_full_pull_request_payload').returns(true);
       sinon.stub(github, 'fetch_config');
       sinon.stub(github, 'fetch_changed_files');
       sinon.stub(github, 'assign_reviewers');
+      sinon.stub(github, 'list_comments').returns([]);
+      sinon.stub(github, 'list_reviews').returns([]);
+      sinon.stub(github, 'get_permission_level');
+      sinon.stub(github, 'get_pull_request_head_sha').returns('deadbeef');
+      sinon.stub(github, 'create_check_run');
     });
 
     afterEach(function() {
       github.get_pull_request.restore();
+      github.get_pull_request_number.restore();
+      github.has_full_pull_request_payload.restore();
       github.fetch_config.restore();
       github.fetch_changed_files.restore();
       github.assign_reviewers.restore();
+      github.list_comments.restore();
+      github.list_reviews.restore();
+      github.get_permission_level.restore();
+      github.get_pull_request_head_sha.restore();
+      github.create_check_run.restore();
     });
 
     it('requests review based on files changed', async function() {
@@ -290,6 +305,93 @@ describe('index', function() {
       const randomly_picked_reviewers = github.assign_reviewers.lastCall.args[0];
       expect([ 'dr-mario', 'mario', 'waluigi' ]).to.include.members(randomly_picked_reviewers);
       expect(new Set(randomly_picked_reviewers)).to.have.lengthOf(2);
+    });
+
+    it('terminates without fetching a config when the comment is not on a pull request', async function() {
+      github.get_pull_request_number.returns(undefined);
+
+      await run();
+
+      expect(github.fetch_config.called).to.be.false;
+      expect(github.list_comments.called).to.be.false;
+    });
+
+    it('skips auto-assignment but still enforces required reviews for a bare comment event', async function() {
+      github.has_full_pull_request_payload.returns(false);
+      github.list_comments.returns([
+        { body: 'require-review: @princess-peach', user: { login: 'toad' } },
+      ]);
+      github.get_permission_level.withArgs('toad').returns('write');
+      github.list_reviews.returns([]);
+
+      sinon.stub(core, 'setFailed');
+
+      await run();
+
+      expect(github.fetch_config.called).to.be.false;
+      expect(core.setFailed.calledOnce).to.be.true;
+      expect(core.setFailed.lastCall.args[0]).to.include('princess-peach');
+
+      expect(github.create_check_run.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
+        head_sha: 'deadbeef',
+        conclusion: 'failure',
+        summary: 'Missing required approving review(s) from: princess-peach',
+      });
+
+      core.setFailed.restore();
+    });
+
+    it('does not fail when the required reviewer has approved', async function() {
+      const config = { reviewers: { defaults: [] } };
+      github.fetch_config.returns(config);
+      github.get_pull_request.returns({ title: 'Nice Pull Request', is_draft: false, author: 'luigi' });
+      github.fetch_changed_files.returns([]);
+
+      github.list_comments.returns([
+        { body: 'require-review: @princess-peach', user: { login: 'toad' } },
+      ]);
+      github.get_permission_level.withArgs('toad').returns('write');
+      github.list_reviews.returns([
+        { user: { login: 'princess-peach' }, state: 'APPROVED' },
+      ]);
+
+      sinon.stub(core, 'setFailed');
+
+      await run();
+
+      expect(core.setFailed.called).to.be.false;
+
+      expect(github.create_check_run.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
+        head_sha: 'deadbeef',
+        conclusion: 'success',
+        summary: 'All required reviewer(s) have approved: princess-peach',
+      });
+
+      core.setFailed.restore();
+    });
+
+    it('ignores a directive from a commenter without write access', async function() {
+      const config = { reviewers: { defaults: [] } };
+      github.fetch_config.returns(config);
+      github.get_pull_request.returns({ title: 'Nice Pull Request', is_draft: false, author: 'luigi' });
+      github.fetch_changed_files.returns([]);
+
+      github.list_comments.returns([
+        { body: 'require-review: @princess-peach', user: { login: 'goomba' } },
+      ]);
+      github.get_permission_level.withArgs('goomba').returns('read');
+
+      sinon.stub(core, 'setFailed');
+
+      await run();
+
+      expect(github.list_reviews.called).to.be.false;
+      expect(core.setFailed.called).to.be.false;
+      expect(github.create_check_run.called).to.be.false;
+
+      core.setFailed.restore();
     });
   });
 });
