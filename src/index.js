@@ -13,7 +13,29 @@ const {
   randomly_pick_reviewers,
 } = require('./reviewer');
 
+const {
+  parse_required_reviewers,
+  is_authorized_permission,
+  identify_approved_reviewers,
+  identify_missing_reviewers,
+} = require('./require_review');
+
 async function run() {
+  const pull_request_number = github.get_pull_request_number();
+
+  if (pull_request_number === undefined) {
+    core.info('The comment is not on a pull request; terminating the process');
+    return;
+  }
+
+  if (github.is_reviewer_assignment_event()) {
+    await auto_assign_reviewers();
+  }
+
+  await enforce_required_reviews();
+}
+
+async function auto_assign_reviewers() {
   core.info('Fetching configuration file from the source branch');
 
   let config;
@@ -73,6 +95,86 @@ async function run() {
 
   core.info(`Requesting review to ${reviewers.join(', ')}`);
   await github.assign_reviewers(reviewers);
+}
+
+async function enforce_required_reviews() {
+  core.info('Checking for "require-review" directives in the pull request comments');
+
+  const comments = await github.list_comments();
+  const required_reviewers = await collect_required_reviewers(comments);
+
+  // A job triggered by "issue_comment" has no commit sha in its payload.
+  // Without this, its check run would land only in the Actions tab, not on the PR.
+  const head_sha = await github.get_pull_request_head_sha();
+
+  if (required_reviewers.length === 0) {
+    await github.create_check_run({
+      head_sha,
+      conclusion: 'success',
+      summary: 'No "require-review" directives are outstanding.',
+    });
+    return;
+  }
+
+  core.info(`Required reviewer(s) by directive: ${required_reviewers.join(', ')}`);
+
+  const reviews = await github.list_reviews();
+  const approved_reviewers = identify_approved_reviewers(reviews);
+  const missing_reviewers = identify_missing_reviewers({ required_reviewers, approved_reviewers });
+
+  if (missing_reviewers.length > 0) {
+    await github.create_check_run({
+      head_sha,
+      conclusion: 'failure',
+      summary: `Missing required approving review(s) from: ${missing_reviewers.join(', ')}`,
+    });
+    return;
+  }
+
+  await github.create_check_run({
+    head_sha,
+    conclusion: 'success',
+    summary: `All required reviewer(s) have approved: ${required_reviewers.join(', ')}`,
+  });
+}
+
+async function collect_required_reviewers(comments) {
+  const required_reviewers = new Set();
+  const permission_cache = new Map();
+
+  for (const comment of comments) {
+    const usernames = parse_required_reviewers(comment.body);
+
+    if (usernames.length === 0) {
+      continue;
+    }
+
+    const commenter = comment.user.login;
+
+    if (!permission_cache.has(commenter)) {
+      permission_cache.set(commenter, await fetch_permission_level(commenter));
+    }
+
+    if (!is_authorized_permission(permission_cache.get(commenter))) {
+      core.info(`Ignoring "require-review" directive from @${commenter}; insufficient permission`);
+      continue;
+    }
+
+    usernames.forEach((username) => required_reviewers.add(username));
+  }
+
+  return [ ...required_reviewers ];
+}
+
+async function fetch_permission_level(username) {
+  try {
+    return await github.get_permission_level(username);
+  } catch (error) {
+    throw new Error(
+      `Could not check @${username}'s permission level (${error.message}). If this repository accepts pull `
+      + 'requests from forks, use "pull_request_target" instead of "pull_request" so the token has write access.'
+    );
+  }
 }
 
 module.exports = {

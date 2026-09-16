@@ -38590,6 +38590,8 @@ const partition = __nccwpck_require__(5563);
 const yaml = __nccwpck_require__(8815);
 const { LOCAL_FILE_MISSING } = __nccwpck_require__(9992);
 
+const REVIEWER_ASSIGNMENT_EVENT_NAMES = [ 'pull_request', 'pull_request_target' ];
+
 class PullRequest {
   // ref: https://developer.github.com/v3/pulls/#get-a-pull-request
   constructor(pull_request_paylaod) {
@@ -38615,6 +38617,26 @@ function get_pull_request() {
   const context = get_context();
 
   return new PullRequest(context.payload.pull_request);
+}
+
+function get_pull_request_number() {
+  const context = get_context();
+
+  if (context.payload.pull_request) {
+    return context.payload.pull_request.number;
+  }
+
+  if (context.payload.issue && context.payload.issue.pull_request) {
+    return context.payload.issue.number;
+  }
+
+  return undefined;
+}
+
+function is_reviewer_assignment_event() {
+  const context = get_context();
+
+  return REVIEWER_ASSIGNMENT_EVENT_NAMES.includes(context.eventName);
 }
 
 async function fetch_config() {
@@ -38695,6 +38717,116 @@ async function assign_reviewers(reviewers) {
   });
 }
 
+async function list_comments() {
+  const context = get_context();
+  const octokit = get_octokit();
+  const pull_request_number = get_pull_request_number();
+
+  const comments = [];
+
+  const per_page = 100;
+  let page = 0;
+  let number_of_comments_in_current_page;
+
+  do {
+    page += 1;
+
+    const { data: response_body } = await octokit.rest.issues.listComments({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: pull_request_number,
+      page,
+      per_page,
+    });
+
+    number_of_comments_in_current_page = response_body.length;
+    comments.push(...response_body);
+
+  } while (number_of_comments_in_current_page === per_page);
+
+  return comments;
+}
+
+async function list_reviews() {
+  const context = get_context();
+  const octokit = get_octokit();
+  const pull_request_number = get_pull_request_number();
+
+  const reviews = [];
+
+  const per_page = 100;
+  let page = 0;
+  let number_of_reviews_in_current_page;
+
+  do {
+    page += 1;
+
+    const { data: response_body } = await octokit.rest.pulls.listReviews({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: pull_request_number,
+      page,
+      per_page,
+    });
+
+    number_of_reviews_in_current_page = response_body.length;
+    reviews.push(...response_body);
+
+  } while (number_of_reviews_in_current_page === per_page);
+
+  return reviews;
+}
+
+async function get_permission_level(username) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  const { data: response_body } = await octokit.rest.repos.getCollaboratorPermissionLevel({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    username,
+  });
+
+  return response_body.permission;
+}
+
+async function get_pull_request_head_sha() {
+  const context = get_context();
+
+  if (context.payload.pull_request) {
+    return context.payload.pull_request.head.sha;
+  }
+
+  const octokit = get_octokit();
+  const pull_request_number = get_pull_request_number();
+
+  const { data: response_body } = await octokit.rest.pulls.get({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: pull_request_number,
+  });
+
+  return response_body.head.sha;
+}
+
+async function create_check_run({ head_sha, conclusion, summary }) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  return octokit.rest.checks.create({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    name: 'require-review',
+    head_sha,
+    status: 'completed',
+    conclusion,
+    output: {
+      title: conclusion === 'success' ? 'All required reviews are approved' : 'Missing required approving review(s)',
+      summary,
+    },
+  });
+}
+
 /* Private */
 
 let context_cache;
@@ -38737,9 +38869,16 @@ function clear_cache() {
 
 module.exports = {
   get_pull_request,
+  get_pull_request_number,
+  is_reviewer_assignment_event,
   fetch_config,
   fetch_changed_files,
   assign_reviewers,
+  list_comments,
+  list_reviews,
+  get_permission_level,
+  get_pull_request_head_sha,
+  create_check_run,
   clear_cache,
 };
 
@@ -38765,7 +38904,29 @@ const {
   randomly_pick_reviewers,
 } = __nccwpck_require__(6230);
 
+const {
+  parse_required_reviewers,
+  is_authorized_permission,
+  identify_approved_reviewers,
+  identify_missing_reviewers,
+} = __nccwpck_require__(3049);
+
 async function run() {
+  const pull_request_number = github.get_pull_request_number();
+
+  if (pull_request_number === undefined) {
+    core.info('The comment is not on a pull request; terminating the process');
+    return;
+  }
+
+  if (github.is_reviewer_assignment_event()) {
+    await auto_assign_reviewers();
+  }
+
+  await enforce_required_reviews();
+}
+
+async function auto_assign_reviewers() {
   core.info('Fetching configuration file from the source branch');
 
   let config;
@@ -38827,6 +38988,86 @@ async function run() {
   await github.assign_reviewers(reviewers);
 }
 
+async function enforce_required_reviews() {
+  core.info('Checking for "require-review" directives in the pull request comments');
+
+  const comments = await github.list_comments();
+  const required_reviewers = await collect_required_reviewers(comments);
+
+  // A job triggered by "issue_comment" has no commit sha in its payload.
+  // Without this, its check run would land only in the Actions tab, not on the PR.
+  const head_sha = await github.get_pull_request_head_sha();
+
+  if (required_reviewers.length === 0) {
+    await github.create_check_run({
+      head_sha,
+      conclusion: 'success',
+      summary: 'No "require-review" directives are outstanding.',
+    });
+    return;
+  }
+
+  core.info(`Required reviewer(s) by directive: ${required_reviewers.join(', ')}`);
+
+  const reviews = await github.list_reviews();
+  const approved_reviewers = identify_approved_reviewers(reviews);
+  const missing_reviewers = identify_missing_reviewers({ required_reviewers, approved_reviewers });
+
+  if (missing_reviewers.length > 0) {
+    await github.create_check_run({
+      head_sha,
+      conclusion: 'failure',
+      summary: `Missing required approving review(s) from: ${missing_reviewers.join(', ')}`,
+    });
+    return;
+  }
+
+  await github.create_check_run({
+    head_sha,
+    conclusion: 'success',
+    summary: `All required reviewer(s) have approved: ${required_reviewers.join(', ')}`,
+  });
+}
+
+async function collect_required_reviewers(comments) {
+  const required_reviewers = new Set();
+  const permission_cache = new Map();
+
+  for (const comment of comments) {
+    const usernames = parse_required_reviewers(comment.body);
+
+    if (usernames.length === 0) {
+      continue;
+    }
+
+    const commenter = comment.user.login;
+
+    if (!permission_cache.has(commenter)) {
+      permission_cache.set(commenter, await fetch_permission_level(commenter));
+    }
+
+    if (!is_authorized_permission(permission_cache.get(commenter))) {
+      core.info(`Ignoring "require-review" directive from @${commenter}; insufficient permission`);
+      continue;
+    }
+
+    usernames.forEach((username) => required_reviewers.add(username));
+  }
+
+  return [ ...required_reviewers ];
+}
+
+async function fetch_permission_level(username) {
+  try {
+    return await github.get_permission_level(username);
+  } catch (error) {
+    throw new Error(
+      `Could not check @${username}'s permission level (${error.message}). If this repository accepts pull `
+      + 'requests from forks, use "pull_request_target" instead of "pull_request" so the token has write access.'
+    );
+  }
+}
+
 module.exports = {
   run,
 };
@@ -38835,6 +39076,70 @@ module.exports = {
 if (process.env.NODE_ENV !== 'automated-testing') {
   run().catch((error) => core.setFailed(error));
 }
+
+
+/***/ }),
+
+/***/ 3049:
+/***/ ((module) => {
+
+"use strict";
+
+
+const DIRECTIVE_PATTERN = /^\s*require-review:\s*@([\w-]+)/gim;
+const AUTHORIZED_PERMISSIONS = [ 'admin', 'write' ];
+const BINDING_REVIEW_STATES = [ 'APPROVED', 'CHANGES_REQUESTED' ];
+
+function parse_required_reviewers(comment_body = '') {
+  const usernames = [];
+
+  for (const match of comment_body.matchAll(DIRECTIVE_PATTERN)) {
+    const end_index = match.index + match[0].length;
+
+    // A mention immediately followed by "/" is a team slug (e.g. "@org/team"), not a
+    // username. Skip it rather than silently requiring a review from "org".
+    if (comment_body[end_index] === '/') {
+      continue;
+    }
+
+    usernames.push(match[1].toLowerCase());
+  }
+
+  return usernames;
+}
+
+function is_authorized_permission(permission) {
+  return AUTHORIZED_PERMISSIONS.includes(permission);
+}
+
+function identify_approved_reviewers(reviews) {
+  const latest_state_by_reviewer = new Map();
+
+  reviews.forEach((review) => {
+    // A COMMENTED or PENDING review doesn't change approval status on GitHub, so it
+    // must not overwrite a prior APPROVED or CHANGES_REQUESTED for the same reviewer.
+    if (!BINDING_REVIEW_STATES.includes(review.state)) {
+      return;
+    }
+
+    latest_state_by_reviewer.set(review.user.login.toLowerCase(), review.state);
+  });
+
+  return [ ...latest_state_by_reviewer.keys() ].filter((reviewer) =>
+    latest_state_by_reviewer.get(reviewer) === 'APPROVED'
+  );
+}
+
+function identify_missing_reviewers({ required_reviewers, approved_reviewers }) {
+  return required_reviewers.filter((reviewer) => !approved_reviewers.includes(reviewer));
+}
+
+module.exports = {
+  parse_required_reviewers,
+  is_authorized_permission,
+  identify_approved_reviewers,
+  identify_missing_reviewers,
+};
 
 
 /***/ }),

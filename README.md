@@ -210,6 +210,37 @@ jobs:
           use_local: true
 ```
 
+### Manually requiring a review
+
+Automatic reviewer assignment based on file patterns or authors can't cover every case. Anyone with `write` or `admin` access to the repository can additionally require an approving review from a specific person by posting a pull request comment:
+
+```
+require-review: @princess-peach
+```
+
+Once posted, this action fails the check below until `@princess-peach` submits an approving review on the pull request. A directive posted by someone without `write`/`admin` access is ignored. A directive naming a team (`@org/team`) is also ignored — only individual users are supported. Required reviewers and their approval status are recomputed from the pull request's current comments and reviews on every run — nothing is persisted, so editing or deleting the directive comment lifts the requirement, as long as the workflow runs again afterward (see the trigger types below).
+
+To have this action re-check the requirement as soon as the named reviewer approves, and whenever the directive comment is edited or deleted, add `pull_request_review` and the extra `issue_comment` types to your workflow's trigger:
+
+```yaml
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created, edited, deleted]
+
+permissions:
+  pull-requests: write
+  checks: write
+  contents: read
+```
+
+This posts its result as a separate check named **`require-review`**, distinct from this action's own job status — a pull request with no directive posted still gets a passing `require-review` check, so it's safe to add as a required status check in your repository's branch protection settings without blocking every other PR. A job triggered by an `issue_comment` event has no commit associated with it in the event payload, so this action explicitly attaches the `require-review` check to the pull request's current head commit via the Checks API. That needs the `checks: write` permission shown above — GitHub only grants it by default when the repository's own "Workflow permissions" setting allows read/write tokens, so declare it explicitly rather than relying on that default.
+
+Checking a commenter's permission level also needs write access to the repository. On a `pull_request` run from a fork, `GITHUB_TOKEN` is read-only regardless of the `permissions:` block above, so a directive posted on a fork's pull request fails with a clear error telling you to switch to `pull_request_target` — see [Working with Forks](#working-with-forks) below.
+
 ### (Optional) GitHub Personal Access Token
 
 When the default `GITHUB_TOKEN` doesn't have the necessary permissions, you need to [create a new GitHub personal access token (PAT)](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token).

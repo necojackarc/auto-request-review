@@ -12,16 +12,30 @@ describe('index', function() {
       github.clear_cache();
 
       sinon.stub(github, 'get_pull_request');
+      sinon.stub(github, 'get_pull_request_number').returns(1);
+      sinon.stub(github, 'is_reviewer_assignment_event').returns(true);
       sinon.stub(github, 'fetch_config');
       sinon.stub(github, 'fetch_changed_files');
       sinon.stub(github, 'assign_reviewers');
+      sinon.stub(github, 'list_comments').returns([]);
+      sinon.stub(github, 'list_reviews').returns([]);
+      sinon.stub(github, 'get_permission_level');
+      sinon.stub(github, 'get_pull_request_head_sha').returns('deadbeef');
+      sinon.stub(github, 'create_check_run');
     });
 
     afterEach(function() {
       github.get_pull_request.restore();
+      github.get_pull_request_number.restore();
+      github.is_reviewer_assignment_event.restore();
       github.fetch_config.restore();
       github.fetch_changed_files.restore();
       github.assign_reviewers.restore();
+      github.list_comments.restore();
+      github.list_reviews.restore();
+      github.get_permission_level.restore();
+      github.get_pull_request_head_sha.restore();
+      github.create_check_run.restore();
     });
 
     it('requests review based on files changed', async function() {
@@ -290,6 +304,139 @@ describe('index', function() {
       const randomly_picked_reviewers = github.assign_reviewers.lastCall.args[0];
       expect([ 'dr-mario', 'mario', 'waluigi' ]).to.include.members(randomly_picked_reviewers);
       expect(new Set(randomly_picked_reviewers)).to.have.lengthOf(2);
+    });
+
+    it('terminates without fetching a config when the comment is not on a pull request', async function() {
+      github.get_pull_request_number.returns(undefined);
+
+      await run();
+
+      expect(github.fetch_config.called).to.be.false;
+      expect(github.list_comments.called).to.be.false;
+    });
+
+    it('reports a passing check when no "require-review" directives are outstanding', async function() {
+      github.is_reviewer_assignment_event.returns(false);
+
+      await run();
+
+      expect(github.list_reviews.called).to.be.false;
+      expect(github.create_check_run.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
+        head_sha: 'deadbeef',
+        conclusion: 'success',
+        summary: 'No "require-review" directives are outstanding.',
+      });
+    });
+
+    it('skips auto-assignment but still enforces required reviews for a bare comment event', async function() {
+      github.is_reviewer_assignment_event.returns(false);
+      github.list_comments.returns([
+        { body: 'require-review: @princess-peach', user: { login: 'toad' } },
+      ]);
+      github.get_permission_level.withArgs('toad').returns('write');
+      github.list_reviews.returns([]);
+
+      await run();
+
+      expect(github.fetch_config.called).to.be.false;
+      expect(github.create_check_run.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
+        head_sha: 'deadbeef',
+        conclusion: 'failure',
+        summary: 'Missing required approving review(s) from: princess-peach',
+      });
+    });
+
+    it('reports success when the required reviewer has approved', async function() {
+      const config = { reviewers: { defaults: [] } };
+      github.fetch_config.returns(config);
+      github.get_pull_request.returns({ title: 'Nice Pull Request', is_draft: false, author: 'luigi' });
+      github.fetch_changed_files.returns([]);
+
+      github.list_comments.returns([
+        { body: 'require-review: @princess-peach', user: { login: 'toad' } },
+      ]);
+      github.get_permission_level.withArgs('toad').returns('write');
+      github.list_reviews.returns([
+        { user: { login: 'princess-peach' }, state: 'APPROVED' },
+      ]);
+
+      await run();
+
+      expect(github.create_check_run.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
+        head_sha: 'deadbeef',
+        conclusion: 'success',
+        summary: 'All required reviewer(s) have approved: princess-peach',
+      });
+    });
+
+    it('ignores a directive from a commenter without write access', async function() {
+      const config = { reviewers: { defaults: [] } };
+      github.fetch_config.returns(config);
+      github.get_pull_request.returns({ title: 'Nice Pull Request', is_draft: false, author: 'luigi' });
+      github.fetch_changed_files.returns([]);
+
+      github.list_comments.returns([
+        { body: 'require-review: @princess-peach', user: { login: 'goomba' } },
+      ]);
+      github.get_permission_level.withArgs('goomba').returns('read');
+
+      await run();
+
+      expect(github.list_reviews.called).to.be.false;
+      expect(github.create_check_run.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
+        head_sha: 'deadbeef',
+        conclusion: 'success',
+        summary: 'No "require-review" directives are outstanding.',
+      });
+    });
+
+    it('checks a commenter\'s permission level only once for multiple directive comments', async function() {
+      const config = { reviewers: { defaults: [] } };
+      github.fetch_config.returns(config);
+      github.get_pull_request.returns({ title: 'Nice Pull Request', is_draft: false, author: 'luigi' });
+      github.fetch_changed_files.returns([]);
+
+      github.list_comments.returns([
+        { body: 'require-review: @princess-peach', user: { login: 'toad' } },
+        { body: 'require-review: @daisy', user: { login: 'toad' } },
+      ]);
+      github.get_permission_level.withArgs('toad').returns('write');
+      github.list_reviews.returns([]);
+
+      await run();
+
+      expect(github.get_permission_level.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0].summary).to.equal(
+        'Missing required approving review(s) from: princess-peach, daisy'
+      );
+    });
+
+    it('raises a clear error when the permission check itself fails', async function() {
+      const config = { reviewers: { defaults: [] } };
+      github.fetch_config.returns(config);
+      github.get_pull_request.returns({ title: 'Nice Pull Request', is_draft: false, author: 'luigi' });
+      github.fetch_changed_files.returns([]);
+
+      github.list_comments.returns([
+        { body: 'require-review: @princess-peach', user: { login: 'toad' } },
+      ]);
+      github.get_permission_level.withArgs('toad').rejects(new Error('Resource not accessible by integration'));
+
+      let caught_error;
+
+      try {
+        await run();
+      } catch (error) {
+        caught_error = error;
+      }
+
+      expect(caught_error).to.not.be.undefined;
+      expect(caught_error.message).to.include('pull_request_target');
+      expect(caught_error.message).to.include('Resource not accessible by integration');
     });
   });
 });
