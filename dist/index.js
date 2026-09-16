@@ -39022,9 +39022,8 @@ async function enforce_required_reviews() {
     approved_reviewers,
   });
 
-  // Explicitly attach a check run to the pull request's head commit, since a job triggered by
-  // "issue_comment" has no commit sha in its event payload and would otherwise report only to
-  // the Actions tab, invisible to the pull request and to required status checks.
+  // A job triggered by "issue_comment" has no commit sha in its payload.
+  // Without this, its check run would land only in the Actions tab, not on the PR.
   const head_sha = await github.get_pull_request_head_sha();
 
   if (missing_reviewers.length > 0) {
