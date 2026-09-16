@@ -7,6 +7,8 @@ const partition = require('lodash/partition');
 const yaml = require('yaml');
 const { LOCAL_FILE_MISSING } = require('./constants');
 
+const REVIEWER_ASSIGNMENT_EVENT_NAMES = [ 'pull_request', 'pull_request_target' ];
+
 class PullRequest {
   // ref: https://developer.github.com/v3/pulls/#get-a-pull-request
   constructor(pull_request_paylaod) {
@@ -48,10 +50,10 @@ function get_pull_request_number() {
   return undefined;
 }
 
-function has_full_pull_request_payload() {
+function is_reviewer_assignment_event() {
   const context = get_context();
 
-  return Boolean(context.payload.pull_request);
+  return REVIEWER_ASSIGNMENT_EVENT_NAMES.includes(context.eventName);
 }
 
 async function fetch_config() {
@@ -285,7 +287,7 @@ function clear_cache() {
 module.exports = {
   get_pull_request,
   get_pull_request_number,
-  has_full_pull_request_payload,
+  is_reviewer_assignment_event,
   fetch_config,
   fetch_changed_files,
   assign_reviewers,

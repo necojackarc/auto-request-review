@@ -1,6 +1,5 @@
 'use strict';
 
-const core = require('@actions/core');
 const github = require('../src/github');
 const sinon = require('sinon');
 const { expect } = require('chai');
@@ -14,7 +13,7 @@ describe('index', function() {
 
       sinon.stub(github, 'get_pull_request');
       sinon.stub(github, 'get_pull_request_number').returns(1);
-      sinon.stub(github, 'has_full_pull_request_payload').returns(true);
+      sinon.stub(github, 'is_reviewer_assignment_event').returns(true);
       sinon.stub(github, 'fetch_config');
       sinon.stub(github, 'fetch_changed_files');
       sinon.stub(github, 'assign_reviewers');
@@ -28,7 +27,7 @@ describe('index', function() {
     afterEach(function() {
       github.get_pull_request.restore();
       github.get_pull_request_number.restore();
-      github.has_full_pull_request_payload.restore();
+      github.is_reviewer_assignment_event.restore();
       github.fetch_config.restore();
       github.fetch_changed_files.restore();
       github.assign_reviewers.restore();
@@ -316,33 +315,40 @@ describe('index', function() {
       expect(github.list_comments.called).to.be.false;
     });
 
+    it('reports a passing check when no "require-review" directives are outstanding', async function() {
+      github.is_reviewer_assignment_event.returns(false);
+
+      await run();
+
+      expect(github.list_reviews.called).to.be.false;
+      expect(github.create_check_run.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
+        head_sha: 'deadbeef',
+        conclusion: 'success',
+        summary: 'No "require-review" directives are outstanding.',
+      });
+    });
+
     it('skips auto-assignment but still enforces required reviews for a bare comment event', async function() {
-      github.has_full_pull_request_payload.returns(false);
+      github.is_reviewer_assignment_event.returns(false);
       github.list_comments.returns([
         { body: 'require-review: @princess-peach', user: { login: 'toad' } },
       ]);
       github.get_permission_level.withArgs('toad').returns('write');
       github.list_reviews.returns([]);
 
-      sinon.stub(core, 'setFailed');
-
       await run();
 
       expect(github.fetch_config.called).to.be.false;
-      expect(core.setFailed.calledOnce).to.be.true;
-      expect(core.setFailed.lastCall.args[0]).to.include('princess-peach');
-
       expect(github.create_check_run.calledOnce).to.be.true;
       expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
         head_sha: 'deadbeef',
         conclusion: 'failure',
         summary: 'Missing required approving review(s) from: princess-peach',
       });
-
-      core.setFailed.restore();
     });
 
-    it('does not fail when the required reviewer has approved', async function() {
+    it('reports success when the required reviewer has approved', async function() {
       const config = { reviewers: { defaults: [] } };
       github.fetch_config.returns(config);
       github.get_pull_request.returns({ title: 'Nice Pull Request', is_draft: false, author: 'luigi' });
@@ -356,11 +362,7 @@ describe('index', function() {
         { user: { login: 'princess-peach' }, state: 'APPROVED' },
       ]);
 
-      sinon.stub(core, 'setFailed');
-
       await run();
-
-      expect(core.setFailed.called).to.be.false;
 
       expect(github.create_check_run.calledOnce).to.be.true;
       expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
@@ -368,8 +370,6 @@ describe('index', function() {
         conclusion: 'success',
         summary: 'All required reviewer(s) have approved: princess-peach',
       });
-
-      core.setFailed.restore();
     });
 
     it('ignores a directive from a commenter without write access', async function() {
@@ -383,15 +383,60 @@ describe('index', function() {
       ]);
       github.get_permission_level.withArgs('goomba').returns('read');
 
-      sinon.stub(core, 'setFailed');
-
       await run();
 
       expect(github.list_reviews.called).to.be.false;
-      expect(core.setFailed.called).to.be.false;
-      expect(github.create_check_run.called).to.be.false;
+      expect(github.create_check_run.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0]).to.deep.equal({
+        head_sha: 'deadbeef',
+        conclusion: 'success',
+        summary: 'No "require-review" directives are outstanding.',
+      });
+    });
 
-      core.setFailed.restore();
+    it('checks a commenter\'s permission level only once for multiple directive comments', async function() {
+      const config = { reviewers: { defaults: [] } };
+      github.fetch_config.returns(config);
+      github.get_pull_request.returns({ title: 'Nice Pull Request', is_draft: false, author: 'luigi' });
+      github.fetch_changed_files.returns([]);
+
+      github.list_comments.returns([
+        { body: 'require-review: @princess-peach', user: { login: 'toad' } },
+        { body: 'require-review: @daisy', user: { login: 'toad' } },
+      ]);
+      github.get_permission_level.withArgs('toad').returns('write');
+      github.list_reviews.returns([]);
+
+      await run();
+
+      expect(github.get_permission_level.calledOnce).to.be.true;
+      expect(github.create_check_run.lastCall.args[0].summary).to.equal(
+        'Missing required approving review(s) from: princess-peach, daisy'
+      );
+    });
+
+    it('raises a clear error when the permission check itself fails', async function() {
+      const config = { reviewers: { defaults: [] } };
+      github.fetch_config.returns(config);
+      github.get_pull_request.returns({ title: 'Nice Pull Request', is_draft: false, author: 'luigi' });
+      github.fetch_changed_files.returns([]);
+
+      github.list_comments.returns([
+        { body: 'require-review: @princess-peach', user: { login: 'toad' } },
+      ]);
+      github.get_permission_level.withArgs('toad').rejects(new Error('Resource not accessible by integration'));
+
+      let caught_error;
+
+      try {
+        await run();
+      } catch (error) {
+        caught_error = error;
+      }
+
+      expect(caught_error).to.not.be.undefined;
+      expect(caught_error.message).to.include('pull_request_target');
+      expect(caught_error.message).to.include('Resource not accessible by integration');
     });
   });
 });

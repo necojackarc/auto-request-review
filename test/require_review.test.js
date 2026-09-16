@@ -35,6 +35,22 @@ describe('require_review', function() {
 
       expect(parse_required_reviewers(comment_body)).to.deep.equal([ 'princess-peach', 'toad' ]);
     });
+
+    it('lowercases the captured username', function() {
+      expect(parse_required_reviewers('require-review: @Princess-Peach')).to.deep.equal([ 'princess-peach' ]);
+    });
+
+    it('ignores a team mention instead of requiring its slug as a user', function() {
+      expect(parse_required_reviewers('require-review: @mario-brothers/core')).to.deep.equal([]);
+    });
+
+    it('does not match a directive that is not at the start of a line', function() {
+      expect(parse_required_reviewers('As discussed, require-review: @princess-peach')).to.deep.equal([]);
+    });
+
+    it('matches a directive with leading whitespace', function() {
+      expect(parse_required_reviewers('  require-review: @princess-peach')).to.deep.equal([ 'princess-peach' ]);
+    });
   });
 
   describe('is_authorized_permission()', function() {
@@ -81,6 +97,32 @@ describe('require_review', function() {
       ];
 
       expect(identify_approved_reviewers(reviews)).to.deep.equal([]);
+    });
+
+    it('does not let a later COMMENTED review undo a prior approval', function() {
+      const reviews = [
+        { user: { login: 'princess-peach' }, state: 'APPROVED' },
+        { user: { login: 'princess-peach' }, state: 'COMMENTED' },
+      ];
+
+      expect(identify_approved_reviewers(reviews)).to.deep.equal([ 'princess-peach' ]);
+    });
+
+    it('does not let a PENDING review undo a prior approval', function() {
+      const reviews = [
+        { user: { login: 'princess-peach' }, state: 'APPROVED' },
+        { user: { login: 'princess-peach' }, state: 'PENDING' },
+      ];
+
+      expect(identify_approved_reviewers(reviews)).to.deep.equal([ 'princess-peach' ]);
+    });
+
+    it('normalizes the reviewer login to lowercase', function() {
+      const reviews = [
+        { user: { login: 'Princess-Peach' }, state: 'APPROVED' },
+      ];
+
+      expect(identify_approved_reviewers(reviews)).to.deep.equal([ 'princess-peach' ]);
     });
   });
 

@@ -11,7 +11,7 @@ const { expect } = require('chai');
 const {
   get_pull_request,
   get_pull_request_number,
-  has_full_pull_request_payload,
+  is_reviewer_assignment_event,
   fetch_config,
   fetch_changed_files,
   assign_reviewers,
@@ -76,14 +76,25 @@ describe('github', function() {
     });
   });
 
-  describe('has_full_pull_request_payload()', function() {
-    it('returns true when the "pull_request" payload is present', function() {
-      expect(has_full_pull_request_payload()).to.be.true;
+  describe('is_reviewer_assignment_event()', function() {
+    it('returns true for "pull_request"', function() {
+      // See the default values of ContextStub
+      expect(is_reviewer_assignment_event()).to.be.true;
     });
 
-    it('returns false when the "pull_request" payload is absent', function() {
-      github.context = ContextStub.build({ payload: { issue: { number: 42 } } });
-      expect(has_full_pull_request_payload()).to.be.false;
+    it('returns true for "pull_request_target"', function() {
+      github.context = ContextStub.build({ eventName: 'pull_request_target' });
+      expect(is_reviewer_assignment_event()).to.be.true;
+    });
+
+    it('returns false for "pull_request_review"', function() {
+      github.context = ContextStub.build({ eventName: 'pull_request_review' });
+      expect(is_reviewer_assignment_event()).to.be.false;
+    });
+
+    it('returns false for "issue_comment"', function() {
+      github.context = ContextStub.build({ eventName: 'issue_comment', payload: { issue: { number: 42 } } });
+      expect(is_reviewer_assignment_event()).to.be.false;
     });
   });
 
